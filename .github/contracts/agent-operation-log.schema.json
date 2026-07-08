@@ -1,0 +1,529 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/schemas/agent-operation-log.schema.json",
+  "title": "Agent Operation Log Entry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "timestamp",
+    "run_id",
+    "agent",
+    "task_summary",
+    "status",
+    "actions",
+    "files_touched",
+    "validation",
+    "risks"
+  ],
+  "properties": {
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 8
+    },
+    "conversation_id": {
+      "type": "string"
+    },
+    "source_workspace": {
+      "type": "string",
+      "maxLength": 300
+    },
+    "source_repo": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "event_name": {
+      "type": "string",
+      "enum": [
+        "SessionStart",
+        "UserPromptSubmit",
+        "PreToolUse",
+        "PostToolUse",
+        "PreCompact",
+        "SubagentStart",
+        "SubagentStop",
+        "Stop",
+        "TaskComplete"
+      ]
+    },
+    "agent": {
+      "type": "string",
+      "minLength": 1
+    },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "interactive",
+        "subagent",
+        "batch",
+        "hook"
+      ]
+    },
+    "task_summary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500
+    },
+    "request_class": {
+      "type": "string",
+      "enum": [
+        "implementation",
+        "review",
+        "debugging",
+        "architecture",
+        "documentation",
+        "research",
+        "operations",
+        "other"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "completed",
+        "partial",
+        "blocked",
+        "failed"
+      ]
+    },
+    "actions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "maxLength": 200
+      }
+    },
+    "tools_used": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "maxLength": 100
+      }
+    },
+    "tool_name": {
+      "type": "string",
+      "maxLength": 100
+    },
+    "files_touched": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "maxLength": 300
+      }
+    },
+    "validation": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "target",
+          "result"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "test",
+              "lint",
+              "typecheck",
+              "run",
+              "manual",
+              "diff",
+              "other"
+            ]
+          },
+          "target": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "result": {
+            "type": "string",
+            "enum": [
+              "passed",
+              "failed",
+              "not-run",
+              "inconclusive"
+            ]
+          },
+          "details": {
+            "type": "string",
+            "maxLength": 500
+          }
+        }
+      }
+    },
+    "delegated_agents": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "maxLength": 100
+      }
+    },
+    "communication": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "user_language": {
+          "type": "string",
+          "maxLength": 50
+        },
+        "agent_language": {
+          "type": "string",
+          "maxLength": 50
+        },
+        "log_language": {
+          "type": "string",
+          "maxLength": 50
+        },
+        "locale": {
+          "type": "string",
+          "maxLength": 50
+        },
+        "consistency": {
+          "type": "string",
+          "enum": [
+            "matched",
+            "mixed",
+            "shifted",
+            "unknown"
+          ]
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 300
+        }
+      }
+    },
+    "collaboration": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "user_solution_adopted": {
+          "type": "boolean"
+        },
+        "user_solution_improved_agent_proposal": {
+          "type": "boolean"
+        },
+        "adopted_solution_source": {
+          "type": "string",
+          "enum": [
+            "user",
+            "agent",
+            "mixed",
+            "external",
+            "unknown"
+          ]
+        },
+        "user_proposal_summary": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "agent_proposal_summary": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "adopted_solution_summary": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "improvement_summary": {
+          "type": "string",
+          "maxLength": 500
+        }
+      }
+    },
+    "positive_feedback": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "type": "string",
+          "enum": [
+            "payload",
+            "inferred",
+            "mixed"
+          ]
+        },
+        "summary": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "signals": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 200
+          }
+        }
+      }
+    },
+    "outcome_summary": {
+      "type": "string",
+      "maxLength": 500
+    },
+    "decision_rationale": {
+      "type": "string",
+      "maxLength": 500
+    },
+    "next_steps": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "maxLength": 300
+      }
+    },
+    "verification_evidence": {
+      "type": "string",
+      "maxLength": 500
+    },
+    "policy_decision": {
+      "type": "string",
+      "enum": [
+        "allow",
+        "ask",
+        "deny",
+        "block"
+      ]
+    },
+    "risks": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "maxLength": 300
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "maxLength": 300
+      }
+    },
+    "telemetry": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "context_source": {
+          "type": "string",
+          "enum": [
+            "payload",
+            "carried-forward",
+            "hook-derived"
+          ]
+        },
+        "timestamp_source": {
+          "type": "string",
+          "enum": [
+            "payload",
+            "writer-clock"
+          ]
+        },
+        "clock_skew_ms": {
+          "type": "number"
+        },
+        "degraded": {
+          "type": "boolean"
+        },
+        "primary_operation": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "model": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "provider": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "name": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "deployment": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "version": {
+              "type": "string",
+              "maxLength": 100
+            }
+          }
+        },
+        "tokens": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "input": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "output": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "total": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cached": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "reasoning": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "requested_max": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "context_window": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "performance": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "duration_ms": {
+              "type": "number",
+              "minimum": 0
+            },
+            "queue_ms": {
+              "type": "number",
+              "minimum": 0
+            },
+            "execution_ms": {
+              "type": "number",
+              "minimum": 0
+            },
+            "model_ms": {
+              "type": "number",
+              "minimum": 0
+            },
+            "tool_ms": {
+              "type": "number",
+              "minimum": 0
+            },
+            "tool_call_count": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "cost": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "currency": {
+              "type": "string",
+              "maxLength": 12
+            },
+            "estimated_total": {
+              "type": "number",
+              "minimum": 0
+            },
+            "estimated_input": {
+              "type": "number",
+              "minimum": 0
+            },
+            "estimated_output": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        },
+        "stats": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "actions_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "tools_used_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "files_touched_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "validation_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "risk_count": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "progress": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "event_phase": {
+              "type": "string",
+              "enum": [
+                "prompt",
+                "tool",
+                "subagent",
+                "session",
+                "compaction",
+                "other"
+              ]
+            },
+            "checkpoint_kind": {
+              "type": "string",
+              "enum": [
+                "start",
+                "progress",
+                "stop"
+              ]
+            },
+            "tool_status": {
+              "type": "string",
+              "enum": [
+                "pending",
+                "running",
+                "succeeded",
+                "failed",
+                "unknown"
+              ]
+            },
+            "sequence": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "completed_steps": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "total_steps": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "progress_pct": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "retry_count": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    }
+  }
+}

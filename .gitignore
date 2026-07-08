@@ -1,0 +1,71 @@
+.venv/
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+env/
+build/
+dist/
+.eggs/
+*.egg-info/
+.pytest_cache/
+coverage.xml
+htmlcov/
+.tox/
+.vscode/
+*.sqlite3
+*.sqlite
+*.db
+*.db-journal
+*.sqlite-shm
+*.sqlite-wal
+*.duckdb
+postgres_data/
+pgdata/
+.DS_Store
+Thumbs.db
+.idea/
+.github/instructions/
+
+#Project files
+docs/goals.md
+
+# Logs
+*.log
+
+# Editor backups
+*~
+
+# Mac
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# VS Code
+.vscode/
+
+# Secrets and config
+.env
+.env.*
+!.env.example
+
+# data files
+data/
+
+# pip cache
+pip-wheel-metadata/
+
+# byte-compiled
+__pycache__/
+
+# lock files
+Pipfile.lock
+poetry.lock
+
+# node
+node_modules/
+
+# Jupyter
+.ipynb_checkpoints/
