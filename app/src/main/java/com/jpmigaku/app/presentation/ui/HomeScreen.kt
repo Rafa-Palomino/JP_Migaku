@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -21,6 +23,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -28,6 +31,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.jpmigaku.app.R
 import com.jpmigaku.app.presentation.viewmodel.HomeScreen
 import com.jpmigaku.app.presentation.viewmodel.HomeViewModel
+import com.jpmigaku.app.presentation.viewmodel.StudyArea
 
 @Composable
 fun JPMigakuApp() {
@@ -64,51 +68,44 @@ private fun HomeContent(uiState: com.jpmigaku.app.presentation.viewmodel.HomeUiS
     Text(text = stringResource(R.string.home_title), style = MaterialTheme.typography.headlineMedium)
     Spacer(modifier = Modifier.height(24.dp))
 
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Button(onClick = viewModel::onSearchClicked, modifier = Modifier.weight(1f)) {
-            Text(stringResource(R.string.search_button))
-        }
-        Button(onClick = viewModel::onPracticeQuizClicked, modifier = Modifier.weight(1f)) {
-            Text(stringResource(R.string.quiz_button))
-        }
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        HubTextBox(
+            text = stringResource(R.string.search_button),
+            onClick = viewModel::onSearchClicked,
+            modifier = Modifier.weight(1f)
+        )
+        Spacer(modifier = Modifier.weight(1f))
+        HubTextBox(
+            text = stringResource(R.string.quiz_button),
+            onClick = viewModel::onPracticeQuizClicked,
+            modifier = Modifier.weight(1f)
+        )
     }
 
-    Spacer(modifier = Modifier.height(36.dp))
-    Text(
-        text = stringResource(R.string.study_area_title),
-        style = MaterialTheme.typography.labelLarge
+    Spacer(modifier = Modifier.height(16.dp))
+    StudyAreaRow(
+        area = StudyArea.KANJI,
+        selectedArea = uiState.studyArea,
+        label = stringResource(R.string.kanji_area),
+        onPrevious = { viewModel.onStudyAreaChanged(StudyArea.VOCABULARY) },
+        onNext = { viewModel.onStudyAreaChanged(StudyArea.VOCABULARY) },
+        onSelect = viewModel::onAddKanjiClicked
     )
     Spacer(modifier = Modifier.height(8.dp))
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Button(
-            onClick = viewModel::onAddKanjiClicked,
-            modifier = Modifier.weight(1f)
-        ) {
-            Text(stringResource(R.string.kanji_area))
-        }
-        Text(
-            text = stringResource(R.string.area_separator),
-            style = MaterialTheme.typography.headlineSmall
-        )
-        Button(
-            onClick = viewModel::onAddVocabularyClicked,
-            modifier = Modifier.weight(1f)
-        ) {
-            Text(stringResource(R.string.vocabulary_area))
-        }
-    }
+    StudyAreaRow(
+        area = StudyArea.VOCABULARY,
+        selectedArea = uiState.studyArea,
+        label = stringResource(R.string.vocabulary_area),
+        onPrevious = { viewModel.onStudyAreaChanged(StudyArea.KANJI) },
+        onNext = { viewModel.onStudyAreaChanged(StudyArea.KANJI) },
+        onSelect = viewModel::onAddVocabularyClicked
+    )
 
     Spacer(modifier = Modifier.height(24.dp))
     Button(onClick = viewModel::onAddVocabularyClicked, modifier = Modifier.fillMaxWidth()) {
         Text(stringResource(R.string.add_vocab_button))
     }
+
     Spacer(modifier = Modifier.height(8.dp))
     Button(onClick = viewModel::onBrowseEntriesClicked, modifier = Modifier.fillMaxWidth()) {
         Text(stringResource(R.string.browse_button))
@@ -118,6 +115,67 @@ private fun HomeContent(uiState: com.jpmigaku.app.presentation.viewmodel.HomeUiS
     Text(
         text = uiState.feedback ?: stringResource(R.string.status_placeholder),
     )
+}
+
+@Composable
+private fun StudyAreaRow(
+    area: com.jpmigaku.app.presentation.viewmodel.StudyArea,
+    selectedArea: com.jpmigaku.app.presentation.viewmodel.StudyArea,
+    label: String,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit,
+    onSelect: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        ArrowButton(symbol = "‹", onClick = onPrevious)
+        HubTextBox(
+            text = label,
+            onClick = onSelect,
+            modifier = Modifier.weight(1f),
+            highlighted = area == selectedArea
+        )
+        ArrowButton(symbol = "›", onClick = onNext)
+    }
+}
+
+@Composable
+private fun HubTextBox(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    highlighted: Boolean = false
+) {
+    OutlinedTextField(
+        value = text,
+        onValueChange = {},
+        readOnly = true,
+        singleLine = true,
+        modifier = modifier.clickable(onClick = onClick),
+        textStyle = MaterialTheme.typography.titleMedium,
+        supportingText = null,
+        colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = if (highlighted) Color.Red else MaterialTheme.colorScheme.primary,
+            unfocusedBorderColor = if (highlighted) Color.Red else MaterialTheme.colorScheme.outline
+        )
+    )
+}
+
+@Composable
+private fun ArrowButton(symbol: String, onClick: () -> Unit) {
+    Button(
+        onClick = onClick,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = Color.Red,
+            contentColor = Color.White
+        ),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp)
+    ) {
+        Text(text = symbol, style = MaterialTheme.typography.headlineSmall)
+    }
 }
 
 @Composable

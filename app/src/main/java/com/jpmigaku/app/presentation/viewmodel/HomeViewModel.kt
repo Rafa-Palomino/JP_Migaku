@@ -17,6 +17,11 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+enum class StudyArea {
+    KANJI,
+    VOCABULARY
+}
+
 enum class QuizMode {
     JAPANESE_TO_SPANISH,
     SPANISH_TO_JAPANESE
@@ -49,6 +54,10 @@ class HomeViewModel @Inject constructor(
 
     fun onAddKanjiClicked() {
         _uiState.update { it.copy(screen = HomeScreen.AddKanji, feedback = null) }
+    }
+
+    fun onStudyAreaChanged(area: StudyArea) {
+        _uiState.update { it.copy(studyArea = area) }
     }
 
     fun onPracticeQuizClicked() {
@@ -259,6 +268,7 @@ sealed interface HomeScreen {
 
 data class HomeUiState(
     val screen: HomeScreen = HomeScreen.Home,
+    val studyArea: StudyArea = StudyArea.KANJI,
     val feedback: String? = null,
     val addJapanese: String = "",
     val addReading: String = "",
