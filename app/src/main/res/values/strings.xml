@@ -4,7 +4,8 @@
     <string name="home_subtitle">Captura, estudia y repite sin conexión.</string>
     <string name="add_vocab_button">Agregar vocabulario</string>
     <string name="practice_button">Practicar quiz</string>
-    <string name="search_button">Ver entradas</string>
+    <string name="search_button">Buscar</string>
+    <string name="quiz_button">Quiz</string>
     <string name="search_entries_button">Buscar entradas</string>
     <string name="browse_button">Ver todo</string>
     <string name="status_placeholder">Fase 0: flujo básico listo para extender.</string>
@@ -28,4 +29,13 @@
     <string name="quiz_empty_message">No hay entradas listas para practicar todavía.</string>
     <string name="search_title">Buscar vocabulario</string>
     <string name="search_hint">Busca por japonés o significado</string>
+    <string name="study_area_title">Área de estudio</string>
+    <string name="kanji_area">Kanji</string>
+    <string name="vocabulary_area">Vocabulario</string>
+    <string name="area_separator">&lt;      &gt;</string>
+    <string name="add_kanji_title">Añadir kanji</string>
+    <string name="add_kanji_description">La captura de kanji se integrará con los diccionarios locales.</string>
+    <string name="field_kanji">Kanji</string>
+    <string name="field_kanji_meaning">Significado</string>
+    <string name="kanji_pending_message">La persistencia y las lecturas estarán disponibles al importar los diccionarios.</string>
 </resources>

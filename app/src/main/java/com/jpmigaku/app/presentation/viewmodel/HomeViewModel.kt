@@ -47,6 +47,10 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    fun onAddKanjiClicked() {
+        _uiState.update { it.copy(screen = HomeScreen.AddKanji, feedback = null) }
+    }
+
     fun onPracticeQuizClicked() {
         viewModelScope.launch {
             refreshState()
@@ -246,6 +250,7 @@ sealed interface HomeAction {
 sealed interface HomeScreen {
     data object Home : HomeScreen
     data object AddVocabulary : HomeScreen
+    data object AddKanji : HomeScreen
     data object QuizMode : HomeScreen
     data object Quiz : HomeScreen
     data object List : HomeScreen

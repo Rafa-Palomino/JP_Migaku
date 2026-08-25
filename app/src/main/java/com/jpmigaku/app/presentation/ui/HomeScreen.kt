@@ -50,6 +50,7 @@ fun JPMigakuHomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
         when (uiState.screen) {
             HomeScreen.Home -> HomeContent(uiState, viewModel)
             HomeScreen.AddVocabulary -> AddVocabularyContent(uiState, viewModel)
+            HomeScreen.AddKanji -> AddKanjiContent(viewModel)
             HomeScreen.QuizMode -> QuizModeContent(uiState, viewModel)
             HomeScreen.List -> VocabularyListContent(uiState, viewModel)
             HomeScreen.Quiz -> QuizContent(uiState, viewModel)
@@ -61,28 +62,91 @@ fun JPMigakuHomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
 @Composable
 private fun HomeContent(uiState: com.jpmigaku.app.presentation.viewmodel.HomeUiState, viewModel: HomeViewModel) {
     Text(text = stringResource(R.string.home_title), style = MaterialTheme.typography.headlineMedium)
-    Spacer(modifier = Modifier.height(8.dp))
-    Text(text = stringResource(R.string.home_subtitle), style = MaterialTheme.typography.bodyMedium)
     Spacer(modifier = Modifier.height(24.dp))
 
-    Button(onClick = { viewModel.onAddVocabularyClicked() }) {
-        Text(text = stringResource(R.string.add_vocab_button))
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Button(onClick = viewModel::onSearchClicked, modifier = Modifier.weight(1f)) {
+            Text(stringResource(R.string.search_button))
+        }
+        Button(onClick = viewModel::onPracticeQuizClicked, modifier = Modifier.weight(1f)) {
+            Text(stringResource(R.string.quiz_button))
+        }
     }
+
+    Spacer(modifier = Modifier.height(36.dp))
+    Text(
+        text = stringResource(R.string.study_area_title),
+        style = MaterialTheme.typography.labelLarge
+    )
     Spacer(modifier = Modifier.height(8.dp))
-    Button(onClick = { viewModel.onPracticeQuizClicked() }) {
-        Text(text = stringResource(R.string.practice_button))
-    }
-    Spacer(modifier = Modifier.height(8.dp))
-    Button(onClick = { viewModel.onSearchClicked() }) {
-        Text(text = stringResource(R.string.search_entries_button))
-    }
-    Spacer(modifier = Modifier.height(8.dp))
-    Button(onClick = { viewModel.onBrowseEntriesClicked() }) {
-        Text(text = stringResource(R.string.browse_button))
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Button(
+            onClick = viewModel::onAddKanjiClicked,
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(stringResource(R.string.kanji_area))
+        }
+        Text(
+            text = stringResource(R.string.area_separator),
+            style = MaterialTheme.typography.headlineSmall
+        )
+        Button(
+            onClick = viewModel::onAddVocabularyClicked,
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(stringResource(R.string.vocabulary_area))
+        }
     }
 
     Spacer(modifier = Modifier.height(24.dp))
-    Text(text = uiState.feedback ?: stringResource(R.string.status_placeholder))
+    Button(onClick = viewModel::onAddVocabularyClicked, modifier = Modifier.fillMaxWidth()) {
+        Text(stringResource(R.string.add_vocab_button))
+    }
+    Spacer(modifier = Modifier.height(8.dp))
+    Button(onClick = viewModel::onBrowseEntriesClicked, modifier = Modifier.fillMaxWidth()) {
+        Text(stringResource(R.string.browse_button))
+    }
+
+    Spacer(modifier = Modifier.height(24.dp))
+    Text(
+        text = uiState.feedback ?: stringResource(R.string.status_placeholder),
+    )
+}
+
+@Composable
+private fun AddKanjiContent(viewModel: HomeViewModel) {
+    Text(text = stringResource(R.string.add_kanji_title), style = MaterialTheme.typography.headlineSmall)
+    Spacer(modifier = Modifier.height(12.dp))
+    Text(text = stringResource(R.string.add_kanji_description))
+    Spacer(modifier = Modifier.height(16.dp))
+    OutlinedTextField(
+        value = "",
+        onValueChange = {},
+        label = { Text(stringResource(R.string.field_kanji)) },
+        modifier = Modifier.fillMaxWidth(),
+        enabled = false
+    )
+    Spacer(modifier = Modifier.height(8.dp))
+    OutlinedTextField(
+        value = "",
+        onValueChange = {},
+        label = { Text(stringResource(R.string.field_kanji_meaning)) },
+        modifier = Modifier.fillMaxWidth(),
+        enabled = false
+    )
+    Spacer(modifier = Modifier.height(16.dp))
+    Text(text = stringResource(R.string.kanji_pending_message))
+    Spacer(modifier = Modifier.height(16.dp))
+    Button(onClick = viewModel::onBackClicked) {
+        Text(stringResource(R.string.back_button))
+    }
 }
 
 @Composable
