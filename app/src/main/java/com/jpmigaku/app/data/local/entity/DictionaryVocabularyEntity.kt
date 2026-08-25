@@ -15,6 +15,7 @@ data class DictionaryVocabularyEntity(
     @PrimaryKey val sequenceId: String,
     val japanese: String,
     val reading: String?,
-    val glosses: String,
+    val spanishGlosses: String,
+    val englishGlosses: String,
     val partsOfSpeech: String
 )

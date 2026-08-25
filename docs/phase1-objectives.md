@@ -11,8 +11,9 @@ La arquitectura base y el pseudocódigo de referencia siguen en `architecture/`.
 ### 1. Diccionario local
 
 - Integrar una fuente local versionada para vocabulario y kanji. La primera
-  fuente seleccionada es JMdict + KANJIDIC2 de EDRDG, con atribución y licencia
-  documentadas en `app/src/main/assets/dictionaries/README.txt`.
+  fuente seleccionada es `jmdict-simplified` (JMdict español/inglés y
+  KANJIDIC2), con atribución y licencia documentadas en
+  `app/src/main/assets/dictionaries/README.txt`.
 - Diseñar una importación reproducible, validada y cancelable.
 - Guardar los datos del diccionario separados de las entradas personales.
 - Permitir actualizar la base local sin perder decks, revisiones ni progreso.

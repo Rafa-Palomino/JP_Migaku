@@ -21,7 +21,8 @@ interface DictionaryKanjiDao {
         """
         SELECT * FROM dictionary_kanji
         WHERE character LIKE '%' || :query || '%'
-           OR meanings LIKE '%' || :query || '%'
+           OR spanishMeanings LIKE '%' || :query || '%'
+           OR englishMeanings LIKE '%' || :query || '%'
         ORDER BY character
         LIMIT :limit
         """

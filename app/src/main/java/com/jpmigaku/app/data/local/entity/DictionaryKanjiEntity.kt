@@ -7,13 +7,15 @@ import androidx.room.PrimaryKey
 @Entity(
     tableName = "dictionary_kanji",
     indices = [
-        Index(value = ["meanings"]),
+        Index(value = ["spanishMeanings"]),
+        Index(value = ["englishMeanings"]),
         Index(value = ["jlptLevel"])
     ]
 )
 data class DictionaryKanjiEntity(
     @PrimaryKey val character: String,
-    val meanings: String,
+    val spanishMeanings: String,
+    val englishMeanings: String,
     val onyomi: String,
     val kunyomi: String,
     val jlptLevel: String?
