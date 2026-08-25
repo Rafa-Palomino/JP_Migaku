@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -66,7 +67,10 @@ fun JPMigakuHomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
 
 @Composable
 private fun HomeContent(uiState: com.jpmigaku.app.presentation.viewmodel.HomeUiState, viewModel: HomeViewModel) {
-    Text(text = stringResource(R.string.home_title), style = MaterialTheme.typography.headlineMedium)
+    Text(
+        text = stringResource(R.string.home_title),
+        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
+    )
     Spacer(modifier = Modifier.height(24.dp))
 
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -85,16 +89,12 @@ private fun HomeContent(uiState: com.jpmigaku.app.presentation.viewmodel.HomeUiS
 
     Spacer(modifier = Modifier.height(16.dp))
     StudyAreaRow(
-        area = StudyArea.KANJI,
-        selectedArea = uiState.studyArea,
         label = stringResource(R.string.kanji_area),
         onPrevious = { viewModel.onStudyAreaChanged(StudyArea.VOCABULARY) },
         onNext = { viewModel.onStudyAreaChanged(StudyArea.VOCABULARY) }
     )
     Spacer(modifier = Modifier.height(8.dp))
     StudyAreaRow(
-        area = StudyArea.VOCABULARY,
-        selectedArea = uiState.studyArea,
         label = stringResource(R.string.vocabulary_area),
         onPrevious = { viewModel.onStudyAreaChanged(StudyArea.KANJI) },
         onNext = { viewModel.onStudyAreaChanged(StudyArea.KANJI) }
@@ -120,8 +120,6 @@ private fun HomeContent(uiState: com.jpmigaku.app.presentation.viewmodel.HomeUiS
 
 @Composable
 private fun StudyAreaRow(
-    area: com.jpmigaku.app.presentation.viewmodel.StudyArea,
-    selectedArea: com.jpmigaku.app.presentation.viewmodel.StudyArea,
     label: String,
     onPrevious: () -> Unit,
     onNext: () -> Unit
@@ -135,8 +133,7 @@ private fun StudyAreaRow(
         HubLabel(
             text = label,
             modifier = Modifier.weight(1f),
-            textAlign = TextAlign.Center,
-            highlighted = area == selectedArea
+            textAlign = TextAlign.Center
         )
         ArrowButton(symbol = "›", onClick = onNext)
     }
@@ -146,15 +143,14 @@ private fun StudyAreaRow(
 private fun HubLabel(
     text: String,
     modifier: Modifier = Modifier,
-    textAlign: TextAlign = TextAlign.Start,
-    highlighted: Boolean = false
+    textAlign: TextAlign = TextAlign.Start
 ) {
     Text(
         text = text,
         modifier = modifier,
         textAlign = textAlign,
-        color = if (highlighted) Color.Red else MaterialTheme.colorScheme.onBackground,
-        style = MaterialTheme.typography.titleMedium
+        color = Color.Black,
+        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
     )
 }
 
@@ -168,7 +164,10 @@ private fun ArrowButton(symbol: String, onClick: () -> Unit) {
         ),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp)
     ) {
-        Text(text = symbol, style = MaterialTheme.typography.headlineSmall)
+        Text(
+            text = symbol,
+            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
+        )
     }
 }
 
