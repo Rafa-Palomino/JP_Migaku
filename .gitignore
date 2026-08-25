@@ -52,7 +52,7 @@ Thumbs.db
 !.env.example
 
 # data files
-data/
+/data/
 
 # pip cache
 pip-wheel-metadata/
