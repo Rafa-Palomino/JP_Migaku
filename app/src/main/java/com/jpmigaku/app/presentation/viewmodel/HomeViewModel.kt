@@ -98,6 +98,13 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    fun onStatisticsClicked() {
+        viewModelScope.launch {
+            refreshState()
+            _uiState.update { it.copy(screen = HomeScreen.Statistics, feedback = null) }
+        }
+    }
+
     fun onBackClicked() {
         _uiState.update { it.copy(screen = HomeScreen.Home, feedback = null) }
     }
@@ -264,6 +271,7 @@ sealed interface HomeScreen {
     data object Quiz : HomeScreen
     data object List : HomeScreen
     data object Search : HomeScreen
+    data object Statistics : HomeScreen
 }
 
 data class HomeUiState(

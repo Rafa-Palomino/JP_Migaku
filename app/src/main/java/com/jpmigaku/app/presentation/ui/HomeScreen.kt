@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -26,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.jpmigaku.app.R
@@ -59,6 +59,7 @@ fun JPMigakuHomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
             HomeScreen.List -> VocabularyListContent(uiState, viewModel)
             HomeScreen.Quiz -> QuizContent(uiState, viewModel)
             HomeScreen.Search -> SearchContent(uiState, viewModel)
+            HomeScreen.Statistics -> StatisticsContent(uiState, viewModel)
         }
     }
 }
@@ -69,16 +70,16 @@ private fun HomeContent(uiState: com.jpmigaku.app.presentation.viewmodel.HomeUiS
     Spacer(modifier = Modifier.height(24.dp))
 
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        HubTextBox(
+        HubLabel(
             text = stringResource(R.string.search_button),
-            onClick = viewModel::onSearchClicked,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
+            textAlign = TextAlign.Start
         )
         Spacer(modifier = Modifier.weight(1f))
-        HubTextBox(
+        HubLabel(
             text = stringResource(R.string.quiz_button),
-            onClick = viewModel::onPracticeQuizClicked,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
+            textAlign = TextAlign.End
         )
     }
 
@@ -88,8 +89,7 @@ private fun HomeContent(uiState: com.jpmigaku.app.presentation.viewmodel.HomeUiS
         selectedArea = uiState.studyArea,
         label = stringResource(R.string.kanji_area),
         onPrevious = { viewModel.onStudyAreaChanged(StudyArea.VOCABULARY) },
-        onNext = { viewModel.onStudyAreaChanged(StudyArea.VOCABULARY) },
-        onSelect = viewModel::onAddKanjiClicked
+        onNext = { viewModel.onStudyAreaChanged(StudyArea.VOCABULARY) }
     )
     Spacer(modifier = Modifier.height(8.dp))
     StudyAreaRow(
@@ -97,18 +97,19 @@ private fun HomeContent(uiState: com.jpmigaku.app.presentation.viewmodel.HomeUiS
         selectedArea = uiState.studyArea,
         label = stringResource(R.string.vocabulary_area),
         onPrevious = { viewModel.onStudyAreaChanged(StudyArea.KANJI) },
-        onNext = { viewModel.onStudyAreaChanged(StudyArea.KANJI) },
-        onSelect = viewModel::onAddVocabularyClicked
+        onNext = { viewModel.onStudyAreaChanged(StudyArea.KANJI) }
     )
 
     Spacer(modifier = Modifier.height(24.dp))
-    Button(onClick = viewModel::onAddVocabularyClicked, modifier = Modifier.fillMaxWidth()) {
-        Text(stringResource(R.string.add_vocab_button))
-    }
-
-    Spacer(modifier = Modifier.height(8.dp))
-    Button(onClick = viewModel::onBrowseEntriesClicked, modifier = Modifier.fillMaxWidth()) {
-        Text(stringResource(R.string.browse_button))
+    Button(
+        onClick = viewModel::onStatisticsClicked,
+        modifier = Modifier.fillMaxWidth(),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = Color.Red,
+            contentColor = Color.White
+        )
+    ) {
+        Text(stringResource(R.string.statistics_button))
     }
 
     Spacer(modifier = Modifier.height(24.dp))
@@ -123,8 +124,7 @@ private fun StudyAreaRow(
     selectedArea: com.jpmigaku.app.presentation.viewmodel.StudyArea,
     label: String,
     onPrevious: () -> Unit,
-    onNext: () -> Unit,
-    onSelect: () -> Unit
+    onNext: () -> Unit
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -132,10 +132,10 @@ private fun StudyAreaRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         ArrowButton(symbol = "‹", onClick = onPrevious)
-        HubTextBox(
+        HubLabel(
             text = label,
-            onClick = onSelect,
             modifier = Modifier.weight(1f),
+            textAlign = TextAlign.Center,
             highlighted = area == selectedArea
         )
         ArrowButton(symbol = "›", onClick = onNext)
@@ -143,24 +143,18 @@ private fun StudyAreaRow(
 }
 
 @Composable
-private fun HubTextBox(
+private fun HubLabel(
     text: String,
-    onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    textAlign: TextAlign = TextAlign.Start,
     highlighted: Boolean = false
 ) {
-    OutlinedTextField(
-        value = text,
-        onValueChange = {},
-        readOnly = true,
-        singleLine = true,
-        modifier = modifier.clickable(onClick = onClick),
-        textStyle = MaterialTheme.typography.titleMedium,
-        supportingText = null,
-        colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = if (highlighted) Color.Red else MaterialTheme.colorScheme.primary,
-            unfocusedBorderColor = if (highlighted) Color.Red else MaterialTheme.colorScheme.outline
-        )
+    Text(
+        text = text,
+        modifier = modifier,
+        textAlign = textAlign,
+        color = if (highlighted) Color.Red else MaterialTheme.colorScheme.onBackground,
+        style = MaterialTheme.typography.titleMedium
     )
 }
 
@@ -333,6 +327,7 @@ private fun SearchContent(uiState: com.jpmigaku.app.presentation.viewmodel.HomeU
     Button(onClick = viewModel::onPerformSearch) {
         Text(stringResource(R.string.search_button))
     }
+
     Spacer(modifier = Modifier.height(12.dp))
 
     if (uiState.searchResults.isNotEmpty()) {
@@ -348,6 +343,21 @@ private fun SearchContent(uiState: com.jpmigaku.app.presentation.viewmodel.HomeU
         }
     }
 
+    Spacer(modifier = Modifier.height(16.dp))
+    Button(onClick = viewModel::onBackClicked) {
+        Text(stringResource(R.string.back_button))
+    }
+}
+
+@Composable
+private fun StatisticsContent(
+    uiState: com.jpmigaku.app.presentation.viewmodel.HomeUiState,
+    viewModel: HomeViewModel
+) {
+    Text(text = stringResource(R.string.statistics_title), style = MaterialTheme.typography.headlineSmall)
+    Spacer(modifier = Modifier.height(16.dp))
+    Text(text = stringResource(R.string.statistics_vocab_count, uiState.vocabularies.size))
+    Text(text = stringResource(R.string.statistics_deck_count, uiState.decks.size))
     Spacer(modifier = Modifier.height(16.dp))
     Button(onClick = viewModel::onBackClicked) {
         Text(stringResource(R.string.back_button))

@@ -8,6 +8,10 @@
     <string name="quiz_button">Quiz</string>
     <string name="search_entries_button">Buscar entradas</string>
     <string name="browse_button">Ver todo</string>
+    <string name="statistics_button">Ver Estadísticas</string>
+    <string name="statistics_title">Estadísticas</string>
+    <string name="statistics_vocab_count">Vocabulario guardado: %1$d</string>
+    <string name="statistics_deck_count">Decks: %1$d</string>
     <string name="status_placeholder">Fase 0: flujo básico listo para extender.</string>
     <string name="add_vocab_title">Añadir vocabulario</string>
     <string name="field_japanese">Japonés</string>
