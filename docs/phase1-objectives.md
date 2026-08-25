@@ -19,6 +19,9 @@ La arquitectura base y el pseudocódigo de referencia siguen en `architecture/`.
 - Permitir actualizar la base local sin perder decks, revisiones ni progreso.
 - Priorizar glosario español y usar el inglés como fallback explícito cuando no
   exista traducción española.
+- Incorporar las clasificaciones JLPT comunitarias de
+  `jkindrix/japanese-language-data` como enriquecimiento externo, conservando
+  nivel, fuente, versión y fecha de recuperación sin modificar JMdict.
 - Incorporar un diccionario personal editable para entradas, traducciones,
   notas o correcciones aportadas por el usuario.
 
@@ -26,6 +29,8 @@ La arquitectura base y el pseudocódigo de referencia siguen en `architecture/`.
 
 - Crear entidades, DAOs, repositorios y casos de uso para kanji.
 - Soportar significado, lecturas onyomi/kunyomi y nivel cuando exista.
+- Consultar el nivel JLPT comunitario por carácter, o por identificador JMdict,
+  texto y lectura para evitar colisiones entre formas homógrafas.
 - Añadir modos `kanji -> significado`, `significado -> kanji` y
   `kanji -> lectura`.
 - Reutilizar el SRS del vocabulario mediante una abstracción común de revisión.

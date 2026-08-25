@@ -5,8 +5,10 @@ import android.util.JsonReader
 import androidx.room.withTransaction
 import com.jpmigaku.app.data.local.dao.DictionaryKanjiDao
 import com.jpmigaku.app.data.local.dao.DictionaryVocabularyDao
+import com.jpmigaku.app.data.local.dao.JlptClassificationDao
 import com.jpmigaku.app.data.local.entity.DictionaryKanjiEntity
 import com.jpmigaku.app.data.local.entity.DictionaryVocabularyEntity
+import com.jpmigaku.app.data.local.entity.JlptClassificationEntity
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -19,6 +21,7 @@ import javax.inject.Singleton
 data class DictionaryImportResult(
     val vocabularyEntries: Int,
     val kanjiEntries: Int,
+    val jlptClassifications: Int,
     val skipped: Boolean
 )
 
@@ -30,23 +33,63 @@ class DictionaryAssetImporter @Inject constructor(
     suspend fun importIfNeeded(): DictionaryImportResult = withContext(Dispatchers.IO) {
         val vocabularyDao = database.dictionaryVocabularyDao()
         val kanjiDao = database.dictionaryKanjiDao()
+        val jlptDao = database.jlptClassificationDao()
         val existingVocabulary = vocabularyDao.count()
         val existingKanji = kanjiDao.count()
+        val existingJlpt = jlptDao.count()
 
-        if (existingVocabulary > 0 && existingKanji > 0) {
-            return@withContext DictionaryImportResult(existingVocabulary, existingKanji, skipped = true)
+        if (existingVocabulary > 0 && existingKanji > 0 && existingJlpt > 0) {
+            return@withContext DictionaryImportResult(
+                existingVocabulary,
+                existingKanji,
+                existingJlpt,
+                skipped = true
+            )
         }
 
         database.withTransaction {
-            vocabularyDao.deleteAll()
-            kanjiDao.deleteAll()
-            val vocabularyCount = importVocabulary(vocabularyDao)
-            val kanjiCount = importKanji(kanjiDao)
-            DictionaryImportResult(vocabularyCount, kanjiCount, skipped = false)
+            val vocabularyCount = if (existingVocabulary > 0 && existingKanji > 0) {
+                existingVocabulary
+            } else {
+                vocabularyDao.deleteAll()
+                kanjiDao.deleteAll()
+                importVocabulary(vocabularyDao)
+            }
+            val kanjiCount = if (existingVocabulary > 0 && existingKanji > 0) {
+                existingKanji
+            } else {
+                importKanji(kanjiDao)
+            }
+            val jlptCount = if (existingJlpt > 0) {
+                existingJlpt
+            } else {
+                jlptDao.deleteAll()
+                importJlpt(jlptDao)
+            }
+            DictionaryImportResult(vocabularyCount, kanjiCount, jlptCount, skipped = false)
         }
     }
 
-    private fun importVocabulary(dao: DictionaryVocabularyDao): Int {
+    private suspend fun importJlpt(dao: JlptClassificationDao): Int {
+        var imported = 0
+        val batch = ArrayList<JlptClassificationEntity>(BATCH_SIZE)
+        readJlptAsset { entry ->
+            batch += entry
+            if (batch.size == BATCH_SIZE) {
+                dao.insertAll(batch)
+                imported += batch.size
+                batch.clear()
+            }
+        }
+        if (batch.isNotEmpty()) {
+            dao.insertAll(batch)
+            imported += batch.size
+        }
+        check(imported > 0) { "El asset JLPT no contiene clasificaciones válidas" }
+        return imported
+    }
+
+    private suspend fun importVocabulary(dao: DictionaryVocabularyDao): Int {
         val spanishById = readVocabularyAsset(SPANISH_VOCABULARY_ASSET)
         val importedIds = HashSet<String>(spanishById.size)
         val batch = ArrayList<DictionaryVocabularyEntity>(BATCH_SIZE)
@@ -85,7 +128,7 @@ class DictionaryAssetImporter @Inject constructor(
         return imported
     }
 
-    private fun importKanji(dao: DictionaryKanjiDao): Int {
+    private suspend fun importKanji(dao: DictionaryKanjiDao): Int {
         val batch = ArrayList<DictionaryKanjiEntity>(BATCH_SIZE)
         var imported = 0
 
@@ -106,15 +149,15 @@ class DictionaryAssetImporter @Inject constructor(
         return imported
     }
 
-    private fun readVocabularyAsset(assetName: String): Map<String, VocabularyRecord> {
+    private suspend fun readVocabularyAsset(assetName: String): Map<String, VocabularyRecord> {
         val entries = LinkedHashMap<String, VocabularyRecord>()
         readVocabularyAsset(assetName) { entry -> entries[entry.id] = entry }
         return entries
     }
 
-    private fun readVocabularyAsset(
+    private suspend fun readVocabularyAsset(
         assetName: String,
-        onEntry: (VocabularyRecord) -> Unit
+        onEntry: suspend (VocabularyRecord) -> Unit
     ) {
         openJsonAsset(assetName).use { input ->
             JsonReader(InputStreamReader(input, Charsets.UTF_8)).use { reader ->
@@ -124,7 +167,7 @@ class DictionaryAssetImporter @Inject constructor(
                         "words" -> {
                             reader.beginArray()
                             while (reader.hasNext()) {
-                                parseVocabularyRecord(reader)?.let(onEntry)
+                                parseVocabularyRecord(reader)?.also { onEntry(it) }
                             }
                             reader.endArray()
                         }
@@ -238,7 +281,10 @@ class DictionaryAssetImporter @Inject constructor(
         reader.endArray()
     }
 
-    private fun readKanjiAsset(assetName: String, onEntry: (DictionaryKanjiEntity) -> Unit) {
+    private suspend fun readKanjiAsset(
+        assetName: String,
+        onEntry: suspend (DictionaryKanjiEntity) -> Unit
+    ) {
         openJsonAsset(assetName).use { input ->
             JsonReader(InputStreamReader(input, Charsets.UTF_8)).use { reader ->
                 reader.beginObject()
@@ -246,7 +292,51 @@ class DictionaryAssetImporter @Inject constructor(
                     when (reader.nextName()) {
                         "characters" -> {
                             reader.beginArray()
-                            while (reader.hasNext()) parseKanjiRecord(reader)?.let(onEntry)
+                            while (reader.hasNext()) {
+                                parseKanjiRecord(reader)?.also { onEntry(it) }
+                            }
+                            reader.endArray()
+                        }
+
+                        else -> reader.skipValue()
+                    }
+                }
+                reader.endObject()
+            }
+        }
+    }
+
+    private suspend fun readJlptAsset(onEntry: suspend (JlptClassificationEntity) -> Unit) {
+        openJsonAsset(JLPT_ASSET).use { input ->
+            JsonReader(InputStreamReader(input, Charsets.UTF_8)).use { reader ->
+                var source = ""
+                var vocabSourceVersion = ""
+                var kanjiSourceVersion = ""
+                reader.beginObject()
+                while (reader.hasNext()) {
+                    when (reader.nextName()) {
+                        "metadata" -> {
+                            reader.beginObject()
+                            while (reader.hasNext()) {
+                                when (reader.nextName()) {
+                                    "source" -> source = reader.nextString()
+                                    "source_version_vocab" -> vocabSourceVersion = reader.nextString()
+                                    "source_version_kanji" -> kanjiSourceVersion = reader.nextString()
+                                    else -> reader.skipValue()
+                                }
+                            }
+                            reader.endObject()
+                        }
+                        "classifications" -> {
+                            reader.beginArray()
+                            while (reader.hasNext()) {
+                                parseJlptRecord(
+                                    reader,
+                                    source,
+                                    vocabSourceVersion,
+                                    kanjiSourceVersion
+                                )?.also { onEntry(it) }
+                            }
                             reader.endArray()
                         }
                         else -> reader.skipValue()
@@ -255,6 +345,62 @@ class DictionaryAssetImporter @Inject constructor(
                 reader.endObject()
             }
         }
+    }
+
+    private fun parseJlptRecord(
+        reader: JsonReader,
+        source: String,
+        vocabSourceVersion: String,
+        kanjiSourceVersion: String
+    ): JlptClassificationEntity? {
+        var text: String? = null
+        var reading = ""
+        var kind: String? = null
+        var level: String? = null
+        var sequenceId = ""
+        var sourceRetrieved = ""
+
+        reader.beginObject()
+        while (reader.hasNext()) {
+            when (reader.nextName()) {
+                "text" -> text = reader.nextString()
+                "reading" -> if (reader.peek() == android.util.JsonToken.NULL) {
+                    reader.nextNull()
+                } else {
+                    reading = reader.nextString()
+                }
+                "kind" -> kind = reader.nextString()
+                "level" -> level = reader.nextString()
+                "jmdict_seq" -> if (reader.peek() == android.util.JsonToken.NULL) {
+                    reader.nextNull()
+                } else {
+                    sequenceId = reader.nextString()
+                }
+                "source_retrieved" -> sourceRetrieved = reader.nextString()
+                else -> reader.skipValue()
+            }
+        }
+        reader.endObject()
+
+        val validText = text?.takeIf(String::isNotBlank)
+        val validKind = kind?.takeIf { it == KIND_VOCABULARY || it == KIND_KANJI }
+        val validLevel = level?.takeIf { it in JLPT_LEVELS }
+        if (validText == null || validKind == null || validLevel == null) return null
+
+        return JlptClassificationEntity(
+            kind = validKind,
+            canonicalId = if (validKind == KIND_KANJI) validText else sequenceId,
+            japaneseText = validText,
+            reading = reading,
+            level = validLevel,
+            source = source,
+            sourceVersion = if (validKind == KIND_VOCABULARY) {
+                vocabSourceVersion
+            } else {
+                kanjiSourceVersion
+            },
+            sourceRetrieved = sourceRetrieved
+        )
     }
 
     private fun parseKanjiRecord(reader: JsonReader): DictionaryKanjiEntity? {
@@ -440,5 +586,9 @@ class DictionaryAssetImporter @Inject constructor(
         const val SPANISH_VOCABULARY_ASSET = "dictionaries/jmdict-spa-3.6.2.json.gz"
         const val ENGLISH_VOCABULARY_ASSET = "dictionaries/jmdict-eng-3.6.2.json.gz"
         const val KANJI_ASSET = "dictionaries/kanjidic2-all-3.6.2.json.gz"
+        const val JLPT_ASSET = "dictionaries/jlpt-classifications.json.gz"
+        const val KIND_VOCABULARY = "vocab"
+        const val KIND_KANJI = "kanji"
+        val JLPT_LEVELS = setOf("N5", "N4", "N3", "N2", "N1")
     }
 }
