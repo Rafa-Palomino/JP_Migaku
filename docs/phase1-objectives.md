@@ -16,6 +16,10 @@ La arquitectura base y el pseudocódigo de referencia siguen en `architecture/`.
 - Diseñar una importación reproducible, validada y cancelable.
 - Guardar los datos del diccionario separados de las entradas personales.
 - Permitir actualizar la base local sin perder decks, revisiones ni progreso.
+- Priorizar glosario español y usar el inglés como fallback explícito cuando no
+  exista traducción española.
+- Incorporar un diccionario personal editable para entradas, traducciones,
+  notas o correcciones aportadas por el usuario.
 
 ### 2. Modelo y práctica de kanji
 
@@ -64,15 +68,28 @@ La arquitectura base y el pseudocódigo de referencia siguen en `architecture/`.
 
 ## Decisiones requeridas antes de implementar
 
-1. Confirmar si los glosarios ingleses de EDRDG son suficientes para la primera
-   importación o si se requiere una fuente adicional en español.
-2. Confirmar si la importación se realiza dentro de la app o durante el build.
-3. Definir si una palabra del diccionario y una entrada personal pueden compartir
+1. Confirmar si la importación se realiza dentro de la app o durante el build.
+2. Definir si una palabra del diccionario y una entrada personal pueden compartir
    identidad o deben permanecer siempre separadas.
-4. Definir el comportamiento de los botones/cajas `Buscar` y `Quiz` del hub:
+3. Definir el comportamiento de los botones/cajas `Buscar` y `Quiz` del hub:
    visualmente son cajas, pero necesitan un mecanismo de activación accesible.
-5. Confirmar las reglas exactas de streak, zona horaria y cambio de día.
-6. Confirmar si los decks pueden contener vocabulario y kanji conjuntamente.
+4. Confirmar las reglas exactas de streak, zona horaria y cambio de día.
+5. Confirmar si los decks pueden contener vocabulario y kanji conjuntamente.
+
+## Resolución de glosarios
+
+La resolución propuesta para una entrada será:
+
+```text
+diccionario personal del usuario
+    > JMdict español
+    > JMdict inglés (fallback marcado)
+```
+
+Las fuentes distribuidas serán de solo lectura y tendrán versión, checksum y
+atribución. El diccionario personal será editable y tendrá identidad y
+proveniencia propias. Las tarjetas SRS referenciarán la entrada resuelta sin
+copiar su progreso cuando se actualice una fuente.
 
 ## Criterio de salida
 
