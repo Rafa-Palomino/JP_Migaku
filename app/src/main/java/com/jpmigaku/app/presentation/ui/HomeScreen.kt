@@ -10,13 +10,17 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -28,6 +32,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.jpmigaku.app.domain.model.DictionaryVocabulary
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.jpmigaku.app.R
 import com.jpmigaku.app.presentation.viewmodel.HomeScreen
@@ -208,6 +213,45 @@ private fun AddVocabularyContent(uiState: com.jpmigaku.app.presentation.viewmode
     Text(text = stringResource(R.string.add_vocab_title), style = MaterialTheme.typography.headlineSmall)
     Spacer(modifier = Modifier.height(12.dp))
 
+    Text(
+        text = stringResource(R.string.dictionary_search_title),
+        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+    )
+    Spacer(modifier = Modifier.height(8.dp))
+    OutlinedTextField(
+        value = uiState.dictionaryQuery,
+        onValueChange = viewModel::onDictionaryQueryChanged,
+        label = { Text(stringResource(R.string.dictionary_search_hint)) },
+        modifier = Modifier.fillMaxWidth(),
+        singleLine = true
+    )
+    if (uiState.dictionaryResults.isNotEmpty()) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = 220.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            items(uiState.dictionaryResults) { entry ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { viewModel.onDictionaryVocabularySelected(entry) }
+                        .padding(vertical = 6.dp)
+                ) {
+                    Text(entry.japanese, style = MaterialTheme.typography.titleMedium)
+                    Text("${entry.reading} · ${entry.meaning}")
+                }
+            }
+        }
+    }
+    Spacer(modifier = Modifier.height(16.dp))
+    Text(
+        text = stringResource(R.string.manual_vocab_title),
+        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+    )
+    Spacer(modifier = Modifier.height(8.dp))
+
     Button(onClick = {
         val clipboardText = clipboardManager?.primaryClip?.getItemAt(0)?.text?.toString()
         viewModel.onClipboardTextLoaded(clipboardText)
@@ -271,6 +315,46 @@ private fun AddVocabularyContent(uiState: com.jpmigaku.app.presentation.viewmode
 
     Spacer(modifier = Modifier.height(12.dp))
     uiState.feedback?.let { Text(it) }
+
+    uiState.selectedDictionaryVocabulary?.let { entry ->
+        DictionaryVocabularyDialog(entry, viewModel)
+    }
+}
+
+@Composable
+private fun DictionaryVocabularyDialog(
+    entry: DictionaryVocabulary,
+    viewModel: HomeViewModel
+) {
+    AlertDialog(
+        onDismissRequest = viewModel::onSelectedDictionaryVocabularyDismissed,
+        title = { Text(stringResource(R.string.dictionary_entry_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(entry.japanese, style = MaterialTheme.typography.headlineSmall)
+                Text("${stringResource(R.string.dictionary_reading_label)}: ${entry.reading}")
+                Text("${stringResource(R.string.dictionary_romaji_label)}: ${entry.romaji}")
+                Text(
+                    "${stringResource(R.string.dictionary_meaning_label)}: ${entry.meaning}" +
+                        if (entry.isEnglishFallback) {
+                            " (${stringResource(R.string.dictionary_english_fallback)})"
+                        } else {
+                            ""
+                        }
+                )
+            }
+        },
+        confirmButton = {
+            Button(onClick = viewModel::onAddSelectedDictionaryVocabulary) {
+                Text(stringResource(R.string.add_button))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = viewModel::onSelectedDictionaryVocabularyDismissed) {
+                Text(stringResource(R.string.back_button))
+            }
+        }
+    )
 }
 
 @Composable

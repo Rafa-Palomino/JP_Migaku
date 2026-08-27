@@ -9,6 +9,7 @@ import com.jpmigaku.app.data.local.dao.JlptClassificationDao
 import com.jpmigaku.app.data.local.entity.DictionaryKanjiEntity
 import com.jpmigaku.app.data.local.entity.DictionaryVocabularyEntity
 import com.jpmigaku.app.data.local.entity.JlptClassificationEntity
+import com.jpmigaku.app.domain.util.toRomaji
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -570,6 +571,7 @@ class DictionaryAssetImporter @Inject constructor(
                 sequenceId = id,
                 japanese = japanese,
                 reading = reading,
+                romaji = reading.orEmpty().toRomaji(),
                 spanishGlosses = spanishGlosses.joinToString(LIST_SEPARATOR),
                 englishGlosses = if (spanishGlosses === glosses) {
                     ""

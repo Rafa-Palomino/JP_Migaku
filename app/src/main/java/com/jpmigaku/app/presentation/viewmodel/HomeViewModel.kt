@@ -3,8 +3,10 @@ package com.jpmigaku.app.presentation.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jpmigaku.app.data.repository.DeckRepository
+import com.jpmigaku.app.data.repository.DictionaryVocabularyRepository
 import com.jpmigaku.app.data.repository.VocabularyRepository
 import com.jpmigaku.app.domain.model.Deck
+import com.jpmigaku.app.domain.model.DictionaryVocabulary
 import com.jpmigaku.app.domain.model.VocabularyEntry
 import com.jpmigaku.app.domain.usecase.CreateDeckUseCase
 import com.jpmigaku.app.domain.usecase.CreateVocabularyUseCase
@@ -15,6 +17,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
 import javax.inject.Inject
 
 enum class StudyArea {
@@ -34,10 +37,12 @@ class HomeViewModel @Inject constructor(
     private val createVocabularyUseCase: CreateVocabularyUseCase,
     private val createDeckUseCase: CreateDeckUseCase,
     private val reviewVocabularyUseCase: ReviewVocabularyUseCase,
-    private val searchVocabularyUseCase: SearchVocabularyUseCase
+    private val searchVocabularyUseCase: SearchVocabularyUseCase,
+    private val dictionaryVocabularyRepository: DictionaryVocabularyRepository
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState = _uiState.asStateFlow()
+    private var dictionarySearchJob: Job? = null
 
     init {
         viewModelScope.launch {
@@ -48,7 +53,15 @@ class HomeViewModel @Inject constructor(
     fun onAddVocabularyClicked() {
         viewModelScope.launch {
             refreshState()
-            _uiState.update { it.copy(screen = HomeScreen.AddVocabulary, feedback = null) }
+            _uiState.update {
+                it.copy(
+                    screen = HomeScreen.AddVocabulary,
+                    feedback = null,
+                    dictionaryQuery = "",
+                    dictionaryResults = emptyList(),
+                    selectedDictionaryVocabulary = null
+                )
+            }
         }
     }
 
@@ -127,6 +140,55 @@ class HomeViewModel @Inject constructor(
 
     fun onJapaneseChanged(value: String) {
         _uiState.update { it.copy(addJapanese = value) }
+    }
+
+    fun onDictionaryQueryChanged(value: String) {
+        _uiState.update {
+            it.copy(
+                dictionaryQuery = value,
+                selectedDictionaryVocabulary = null,
+                dictionaryResults = if (value.isBlank()) emptyList() else it.dictionaryResults
+            )
+        }
+        dictionarySearchJob?.cancel()
+        if (value.isBlank()) return
+
+        dictionarySearchJob = viewModelScope.launch {
+            val results = dictionaryVocabularyRepository.search(value, limit = 20)
+            if (_uiState.value.dictionaryQuery == value) {
+                _uiState.update { it.copy(dictionaryResults = results) }
+            }
+        }
+    }
+
+    fun onDictionaryVocabularySelected(entry: DictionaryVocabulary) {
+        _uiState.update { it.copy(selectedDictionaryVocabulary = entry) }
+    }
+
+    fun onSelectedDictionaryVocabularyDismissed() {
+        _uiState.update { it.copy(selectedDictionaryVocabulary = null) }
+    }
+
+    fun onAddSelectedDictionaryVocabulary() {
+        val current = _uiState.value
+        val entry = current.selectedDictionaryVocabulary ?: return
+        viewModelScope.launch {
+            createVocabularyUseCase(
+                japanese = entry.japanese,
+                reading = entry.reading,
+                meaningEs = entry.meaning,
+                deckId = current.selectedDeckId
+            )
+            refreshState()
+            _uiState.update {
+                it.copy(
+                    selectedDictionaryVocabulary = null,
+                    dictionaryQuery = "",
+                    dictionaryResults = emptyList(),
+                    feedback = "Añadido: ${entry.japanese}"
+                )
+            }
+        }
     }
 
     fun onReadingChanged(value: String) {
@@ -291,5 +353,8 @@ data class HomeUiState(
     val quizFeedback: String? = null,
     val quizCompleted: Boolean = false,
     val searchQuery: String = "",
-    val searchResults: List<VocabularyEntry> = emptyList()
+    val searchResults: List<VocabularyEntry> = emptyList(),
+    val dictionaryQuery: String = "",
+    val dictionaryResults: List<DictionaryVocabulary> = emptyList(),
+    val selectedDictionaryVocabulary: DictionaryVocabulary? = null
 )

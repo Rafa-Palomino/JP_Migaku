@@ -14,6 +14,15 @@
     <string name="statistics_deck_count">Decks: %1$d</string>
     <string name="status_placeholder">Fase 0: flujo básico listo para extender.</string>
     <string name="add_vocab_title">Añadir vocabulario</string>
+    <string name="dictionary_search_title">Buscar en el diccionario</string>
+    <string name="dictionary_search_hint">Kanji, kana, romaji o traducción</string>
+    <string name="manual_vocab_title">Añadir manualmente</string>
+    <string name="dictionary_entry_title">Detalle de vocabulario</string>
+    <string name="dictionary_reading_label">Lectura en kana</string>
+    <string name="dictionary_romaji_label">Lectura en romaji</string>
+    <string name="dictionary_meaning_label">Significado</string>
+    <string name="dictionary_english_fallback">inglés</string>
+    <string name="add_button">Agregar</string>
     <string name="field_japanese">Japonés</string>
     <string name="field_reading">Lectura</string>
     <string name="field_meaning">Significado</string>
