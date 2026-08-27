@@ -51,4 +51,8 @@
     <string name="field_kanji">Kanji</string>
     <string name="field_kanji_meaning">Significado</string>
     <string name="kanji_pending_message">La persistencia y las lecturas estarán disponibles al importar los diccionarios.</string>
+    <string name="kanji_search_hint">Kanji o significado</string>
+    <string name="kanji_entry_title">Detalle de kanji</string>
+    <string name="kanji_onyomi_label">Onyomi</string>
+    <string name="kanji_kunyomi_label">Kunyomi</string>
 </resources>

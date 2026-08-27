@@ -6,6 +6,8 @@ import com.jpmigaku.app.data.local.JPMigakuDatabase
 import com.jpmigaku.app.data.repository.DeckRepository
 import com.jpmigaku.app.data.repository.DictionaryVocabularyRepository
 import com.jpmigaku.app.data.repository.RoomDictionaryVocabularyRepository
+import com.jpmigaku.app.data.repository.DictionaryKanjiRepository
+import com.jpmigaku.app.data.repository.RoomDictionaryKanjiRepository
 import com.jpmigaku.app.data.repository.RoomVocabularyRepository
 import com.jpmigaku.app.data.repository.VocabularyRepository
 import dagger.Module
@@ -48,5 +50,11 @@ object AppModule {
         database: JPMigakuDatabase
     ): DictionaryVocabularyRepository {
         return RoomDictionaryVocabularyRepository(database.dictionaryVocabularyDao())
+    }
+
+    @Provides
+    @Singleton
+    fun provideDictionaryKanjiRepository(database: JPMigakuDatabase): DictionaryKanjiRepository {
+        return RoomDictionaryKanjiRepository(database.dictionaryKanjiDao())
     }
 }

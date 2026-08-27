@@ -33,6 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.jpmigaku.app.domain.model.DictionaryVocabulary
+import com.jpmigaku.app.domain.model.DictionaryKanji
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.jpmigaku.app.R
 import com.jpmigaku.app.presentation.viewmodel.HomeScreen
@@ -60,7 +61,7 @@ fun JPMigakuHomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
         when (uiState.screen) {
             HomeScreen.Home -> HomeContent(uiState, viewModel)
             HomeScreen.AddVocabulary -> AddVocabularyContent(uiState, viewModel)
-            HomeScreen.AddKanji -> AddKanjiContent(viewModel)
+            HomeScreen.AddKanji -> AddKanjiContent(uiState, viewModel)
             HomeScreen.QuizMode -> QuizModeContent(uiState, viewModel)
             HomeScreen.List -> VocabularyListContent(uiState, viewModel)
             HomeScreen.Quiz -> QuizContent(uiState, viewModel)
@@ -177,32 +178,85 @@ private fun ArrowButton(symbol: String, onClick: () -> Unit) {
 }
 
 @Composable
-private fun AddKanjiContent(viewModel: HomeViewModel) {
+private fun AddKanjiContent(
+    uiState: com.jpmigaku.app.presentation.viewmodel.HomeUiState,
+    viewModel: HomeViewModel
+) {
     Text(text = stringResource(R.string.add_kanji_title), style = MaterialTheme.typography.headlineSmall)
     Spacer(modifier = Modifier.height(12.dp))
-    Text(text = stringResource(R.string.add_kanji_description))
-    Spacer(modifier = Modifier.height(16.dp))
-    OutlinedTextField(
-        value = "",
-        onValueChange = {},
-        label = { Text(stringResource(R.string.field_kanji)) },
-        modifier = Modifier.fillMaxWidth(),
-        enabled = false
+    Text(
+        text = stringResource(R.string.dictionary_search_title),
+        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
     )
     Spacer(modifier = Modifier.height(8.dp))
     OutlinedTextField(
-        value = "",
-        onValueChange = {},
-        label = { Text(stringResource(R.string.field_kanji_meaning)) },
+        value = uiState.kanjiQuery,
+        onValueChange = viewModel::onKanjiQueryChanged,
+        label = { Text(stringResource(R.string.kanji_search_hint)) },
         modifier = Modifier.fillMaxWidth(),
-        enabled = false
+        singleLine = true
     )
+    if (uiState.kanjiResults.isNotEmpty()) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = 220.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            items(uiState.kanjiResults) { entry ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { viewModel.onDictionaryKanjiSelected(entry) }
+                        .padding(vertical = 6.dp)
+                ) {
+                    Text(entry.character, style = MaterialTheme.typography.titleMedium)
+                    Text(entry.meaning)
+                }
+            }
+        }
+    }
     Spacer(modifier = Modifier.height(16.dp))
-    Text(text = stringResource(R.string.kanji_pending_message))
-    Spacer(modifier = Modifier.height(16.dp))
+    uiState.feedback?.let { Text(it) }
+    uiState.selectedDictionaryKanji?.let { entry ->
+        DictionaryKanjiDialog(entry, viewModel)
+    }
     Button(onClick = viewModel::onBackClicked) {
         Text(stringResource(R.string.back_button))
     }
+}
+
+@Composable
+private fun DictionaryKanjiDialog(entry: DictionaryKanji, viewModel: HomeViewModel) {
+    AlertDialog(
+        onDismissRequest = viewModel::onSelectedDictionaryKanjiDismissed,
+        title = { Text(stringResource(R.string.kanji_entry_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(entry.character, style = MaterialTheme.typography.headlineSmall)
+                Text("${stringResource(R.string.kanji_onyomi_label)}: ${entry.onyomi.ifBlank { "-" }}")
+                Text("${stringResource(R.string.kanji_kunyomi_label)}: ${entry.kunyomi.ifBlank { "-" }}")
+                Text(
+                    "${stringResource(R.string.dictionary_meaning_label)}: ${entry.meaning}" +
+                        if (entry.isEnglishFallback) {
+                            " (${stringResource(R.string.dictionary_english_fallback)})"
+                        } else {
+                            ""
+                        }
+                )
+            }
+        },
+        confirmButton = {
+            Button(onClick = viewModel::onAddSelectedDictionaryKanji) {
+                Text(stringResource(R.string.add_button))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = viewModel::onSelectedDictionaryKanjiDismissed) {
+                Text(stringResource(R.string.back_button))
+            }
+        }
+    )
 }
 
 @Composable
