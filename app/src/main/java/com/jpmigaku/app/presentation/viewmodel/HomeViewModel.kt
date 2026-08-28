@@ -68,18 +68,17 @@ class HomeViewModel @Inject constructor(
     }
 
     fun onAddVocabularyClicked() {
+        _uiState.update {
+            it.copy(
+                screen = HomeScreen.AddVocabulary,
+                feedback = null,
+                dictionaryQuery = "",
+                dictionaryResults = emptyList(),
+                selectedDictionaryVocabulary = null
+            )
+        }
         viewModelScope.launch {
-            dictionaryImportJob.join()
             refreshState()
-            _uiState.update {
-                it.copy(
-                    screen = HomeScreen.AddVocabulary,
-                    feedback = null,
-                    dictionaryQuery = "",
-                    dictionaryResults = emptyList(),
-                    selectedDictionaryVocabulary = null
-                )
-            }
         }
     }
 
@@ -93,17 +92,14 @@ class HomeViewModel @Inject constructor(
     }
 
     fun onAddKanjiClicked() {
-        viewModelScope.launch {
-            dictionaryImportJob.join()
-            _uiState.update {
-                it.copy(
-                    screen = HomeScreen.AddKanji,
-                    feedback = null,
-                    kanjiQuery = "",
-                    kanjiResults = emptyList(),
-                    selectedDictionaryKanji = null
-                )
-            }
+        _uiState.update {
+            it.copy(
+                screen = HomeScreen.AddKanji,
+                feedback = null,
+                kanjiQuery = "",
+                kanjiResults = emptyList(),
+                selectedDictionaryKanji = null
+            )
         }
     }
 
