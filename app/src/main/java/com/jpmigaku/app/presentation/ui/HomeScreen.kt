@@ -96,13 +96,13 @@ private fun HomeContent(uiState: com.jpmigaku.app.presentation.viewmodel.HomeUiS
     Spacer(modifier = Modifier.height(16.dp))
     StudyAreaRow(
         label = stringResource(R.string.kanji_area),
-        onPrevious = { viewModel.onStudyAreaChanged(StudyArea.VOCABULARY) },
+        onPrevious = viewModel::onAddKanjiClicked,
         onNext = { viewModel.onStudyAreaChanged(StudyArea.VOCABULARY) }
     )
     Spacer(modifier = Modifier.height(8.dp))
     StudyAreaRow(
         label = stringResource(R.string.vocabulary_area),
-        onPrevious = { viewModel.onStudyAreaChanged(StudyArea.KANJI) },
+        onPrevious = viewModel::onAddVocabularyClicked,
         onNext = { viewModel.onStudyAreaChanged(StudyArea.KANJI) }
     )
 
