@@ -312,6 +312,7 @@ private fun AddVocabularyContent(uiState: com.jpmigaku.app.presentation.viewmode
         Text(stringResource(R.string.manual_vocab_title))
     }
     if (uiState.screen == HomeScreen.AddVocabulary) {
+        uiState.feedback?.let { Text(it) }
         uiState.selectedDictionaryVocabulary?.let { entry ->
             DictionaryVocabularyDialog(uiState, entry, viewModel)
         }
