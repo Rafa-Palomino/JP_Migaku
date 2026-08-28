@@ -69,6 +69,15 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    fun onAddManualVocabularyClicked() {
+        viewModelScope.launch {
+            refreshState()
+            _uiState.update {
+                it.copy(screen = HomeScreen.PersonalVocabulary, feedback = null)
+            }
+        }
+    }
+
     fun onAddKanjiClicked() {
         _uiState.update {
             it.copy(
@@ -170,7 +179,17 @@ class HomeViewModel @Inject constructor(
             if (_uiState.value.dictionaryQuery == value) {
                 _uiState.update { it.copy(dictionaryResults = results) }
             }
+
         }
+    }
+
+    fun onClipboardSearchLoaded(text: String?) {
+        val normalized = text?.trim().orEmpty()
+        if (normalized.isBlank()) {
+            _uiState.update { it.copy(feedback = "El portapapeles está vacío") }
+            return
+        }
+        onDictionaryQueryChanged(normalized)
     }
 
     fun onDictionaryVocabularySelected(entry: DictionaryVocabulary) {
@@ -389,6 +408,7 @@ sealed interface HomeAction {
 sealed interface HomeScreen {
     data object Home : HomeScreen
     data object AddVocabulary : HomeScreen
+    data object PersonalVocabulary : HomeScreen
     data object AddKanji : HomeScreen
     data object QuizMode : HomeScreen
     data object Quiz : HomeScreen

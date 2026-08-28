@@ -17,6 +17,7 @@
     <string name="dictionary_search_title">Buscar en el diccionario</string>
     <string name="dictionary_search_hint">Kanji, kana, romaji o traducción</string>
     <string name="manual_vocab_title">Añadir manualmente</string>
+    <string name="personal_vocab_title">Añadir palabra al diccionario personal</string>
     <string name="dictionary_entry_title">Detalle de vocabulario</string>
     <string name="dictionary_reading_label">Lectura en kana</string>
     <string name="dictionary_romaji_label">Lectura en romaji</string>

@@ -5,6 +5,7 @@ import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,7 +21,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -61,6 +61,7 @@ fun JPMigakuHomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
         when (uiState.screen) {
             HomeScreen.Home -> HomeContent(uiState, viewModel)
             HomeScreen.AddVocabulary -> AddVocabularyContent(uiState, viewModel)
+            HomeScreen.PersonalVocabulary -> PersonalVocabularyContent(uiState, viewModel)
             HomeScreen.AddKanji -> AddKanjiContent(uiState, viewModel)
             HomeScreen.QuizMode -> QuizModeContent(uiState, viewModel)
             HomeScreen.List -> VocabularyListContent(uiState, viewModel)
@@ -221,7 +222,7 @@ private fun AddKanjiContent(
     uiState.selectedDictionaryKanji?.let { entry ->
         DictionaryKanjiDialog(entry, viewModel)
     }
-    Button(onClick = viewModel::onBackClicked) {
+    RedButton(onClick = viewModel::onBackClicked) {
         Text(stringResource(R.string.back_button))
     }
 }
@@ -247,12 +248,12 @@ private fun DictionaryKanjiDialog(entry: DictionaryKanji, viewModel: HomeViewMod
             }
         },
         confirmButton = {
-            Button(onClick = viewModel::onAddSelectedDictionaryKanji) {
+            RedButton(onClick = viewModel::onAddSelectedDictionaryKanji) {
                 Text(stringResource(R.string.add_button))
             }
         },
         dismissButton = {
-            TextButton(onClick = viewModel::onSelectedDictionaryKanjiDismissed) {
+            RedButton(onClick = viewModel::onSelectedDictionaryKanjiDismissed) {
                 Text(stringResource(R.string.back_button))
             }
         }
@@ -279,6 +280,13 @@ private fun AddVocabularyContent(uiState: com.jpmigaku.app.presentation.viewmode
         modifier = Modifier.fillMaxWidth(),
         singleLine = true
     )
+    Spacer(modifier = Modifier.height(8.dp))
+    RedButton(onClick = {
+        val clipboardText = clipboardManager?.primaryClip?.getItemAt(0)?.text?.toString()
+        viewModel.onClipboardSearchLoaded(clipboardText)
+    }) {
+        Text(stringResource(R.string.clipboard_button))
+    }
     if (uiState.dictionaryResults.isNotEmpty()) {
         LazyColumn(
             modifier = Modifier
@@ -300,6 +308,15 @@ private fun AddVocabularyContent(uiState: com.jpmigaku.app.presentation.viewmode
         }
     }
     Spacer(modifier = Modifier.height(16.dp))
+    RedButton(onClick = viewModel::onAddManualVocabularyClicked) {
+        Text(stringResource(R.string.manual_vocab_title))
+    }
+    if (uiState.screen == HomeScreen.AddVocabulary) {
+        uiState.selectedDictionaryVocabulary?.let { entry ->
+            DictionaryVocabularyDialog(uiState, entry, viewModel)
+        }
+        return
+    }
     Text(
         text = stringResource(R.string.manual_vocab_title),
         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
@@ -371,12 +388,13 @@ private fun AddVocabularyContent(uiState: com.jpmigaku.app.presentation.viewmode
     uiState.feedback?.let { Text(it) }
 
     uiState.selectedDictionaryVocabulary?.let { entry ->
-        DictionaryVocabularyDialog(entry, viewModel)
+        DictionaryVocabularyDialog(uiState, entry, viewModel)
     }
 }
 
 @Composable
 private fun DictionaryVocabularyDialog(
+    uiState: com.jpmigaku.app.presentation.viewmodel.HomeUiState,
     entry: DictionaryVocabulary,
     viewModel: HomeViewModel
 ) {
@@ -396,18 +414,106 @@ private fun DictionaryVocabularyDialog(
                             ""
                         }
                 )
+                DeckManagementContent(uiState, viewModel)
             }
         },
         confirmButton = {
-            Button(onClick = viewModel::onAddSelectedDictionaryVocabulary) {
+            RedButton(onClick = viewModel::onAddSelectedDictionaryVocabulary) {
                 Text(stringResource(R.string.add_button))
             }
         },
         dismissButton = {
-            TextButton(onClick = viewModel::onSelectedDictionaryVocabularyDismissed) {
+            RedButton(onClick = viewModel::onSelectedDictionaryVocabularyDismissed) {
                 Text(stringResource(R.string.back_button))
             }
         }
+    )
+}
+
+@Composable
+private fun PersonalVocabularyContent(
+    uiState: com.jpmigaku.app.presentation.viewmodel.HomeUiState,
+    viewModel: HomeViewModel
+) {
+    Text(text = stringResource(R.string.personal_vocab_title), style = MaterialTheme.typography.headlineSmall)
+    Spacer(modifier = Modifier.height(12.dp))
+    OutlinedTextField(
+        value = uiState.addJapanese,
+        onValueChange = viewModel::onJapaneseChanged,
+        label = { Text(stringResource(R.string.field_japanese)) },
+        modifier = Modifier.fillMaxWidth()
+    )
+    Spacer(modifier = Modifier.height(8.dp))
+    OutlinedTextField(
+        value = uiState.addReading,
+        onValueChange = viewModel::onReadingChanged,
+        label = { Text(stringResource(R.string.field_reading)) },
+        modifier = Modifier.fillMaxWidth()
+    )
+    Spacer(modifier = Modifier.height(8.dp))
+    OutlinedTextField(
+        value = uiState.addMeaning,
+        onValueChange = viewModel::onMeaningChanged,
+        label = { Text(stringResource(R.string.field_meaning)) },
+        modifier = Modifier.fillMaxWidth()
+    )
+    Spacer(modifier = Modifier.height(12.dp))
+    DeckManagementContent(uiState, viewModel)
+    Spacer(modifier = Modifier.height(16.dp))
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        RedButton(onClick = viewModel::onSaveVocabulary) {
+            Text(stringResource(R.string.save_button))
+        }
+        RedButton(onClick = viewModel::onBackClicked) {
+            Text(stringResource(R.string.back_button))
+        }
+    }
+    uiState.feedback?.let { Text(it) }
+}
+
+@Composable
+private fun DeckManagementContent(
+    uiState: com.jpmigaku.app.presentation.viewmodel.HomeUiState,
+    viewModel: HomeViewModel
+) {
+    Text(text = stringResource(R.string.deck_selector_title))
+    uiState.decks.forEach { deck ->
+        val selected = deck.id == uiState.selectedDeckId
+        Spacer(modifier = Modifier.height(4.dp))
+        RedButton(onClick = { viewModel.onDeckSelected(deck.id) }, enabled = !selected) {
+            Text(if (selected) "${deck.name} ✓" else deck.name)
+        }
+    }
+    Spacer(modifier = Modifier.height(8.dp))
+    OutlinedTextField(
+        value = uiState.newDeckName,
+        onValueChange = viewModel::onDeckNameChanged,
+        label = { Text(stringResource(R.string.new_deck_hint)) },
+        modifier = Modifier.fillMaxWidth(),
+        singleLine = true
+    )
+    Spacer(modifier = Modifier.height(8.dp))
+    RedButton(onClick = viewModel::onCreateDeckClicked) {
+        Text(stringResource(R.string.create_deck_button))
+    }
+}
+
+@Composable
+private fun RedButton(
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+    content: @Composable RowScope.() -> Unit
+) {
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = Color.Red,
+            contentColor = Color.White,
+            disabledContainerColor = Color.LightGray,
+            disabledContentColor = Color.DarkGray
+        ),
+        content = content
     )
 }
 
