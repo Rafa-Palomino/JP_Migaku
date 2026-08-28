@@ -15,6 +15,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.InputStream
 import java.io.InputStreamReader
+import java.io.BufferedInputStream
+import java.io.IOException
 import java.util.zip.GZIPInputStream
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -556,8 +558,24 @@ class DictionaryAssetImporter @Inject constructor(
         reader.endArray()
     }
 
-    private fun openJsonAsset(assetName: String): InputStream =
-        GZIPInputStream(context.assets.open(assetName))
+    private fun openJsonAsset(assetName: String): InputStream {
+        val input = try {
+            context.assets.open(assetName)
+        } catch (error: IOException) {
+            if (!assetName.endsWith(".gz")) throw error
+            context.assets.open(assetName.removeSuffix(".gz"))
+        }
+        val buffered = BufferedInputStream(input)
+        buffered.mark(2)
+        val first = buffered.read()
+        val second = buffered.read()
+        buffered.reset()
+        return if (first == GZIP_MAGIC_FIRST && second == GZIP_MAGIC_SECOND) {
+            GZIPInputStream(buffered)
+        } else {
+            buffered
+        }
+    }
 
     private data class VocabularyRecord(
         val id: String,
@@ -589,6 +607,8 @@ class DictionaryAssetImporter @Inject constructor(
         const val ENGLISH_VOCABULARY_ASSET = "dictionaries/jmdict-eng-3.6.2.json.gz"
         const val KANJI_ASSET = "dictionaries/kanjidic2-all-3.6.2.json.gz"
         const val JLPT_ASSET = "dictionaries/jlpt-classifications.json.gz"
+        const val GZIP_MAGIC_FIRST = 0x1F
+        const val GZIP_MAGIC_SECOND = 0x8B
         const val KIND_VOCABULARY = "vocab"
         const val KIND_KANJI = "kanji"
         val JLPT_LEVELS = setOf("N5", "N4", "N3", "N2", "N1")
