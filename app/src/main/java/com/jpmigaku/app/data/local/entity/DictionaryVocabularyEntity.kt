@@ -8,13 +8,15 @@ import androidx.room.PrimaryKey
     tableName = "dictionary_vocabulary",
     indices = [
         Index(value = ["japanese"]),
-        Index(value = ["reading"])
+        Index(value = ["reading"]),
+        Index(value = ["romaji"])
     ]
 )
 data class DictionaryVocabularyEntity(
     @PrimaryKey val sequenceId: String,
     val japanese: String,
     val reading: String?,
+    val romaji: String,
     val spanishGlosses: String,
     val englishGlosses: String,
     val partsOfSpeech: String

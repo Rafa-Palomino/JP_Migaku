@@ -2,9 +2,14 @@ package com.jpmigaku.app.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.jpmigaku.app.data.local.DictionaryAssetImporter
 import com.jpmigaku.app.data.repository.DeckRepository
+import com.jpmigaku.app.data.repository.DictionaryVocabularyRepository
+import com.jpmigaku.app.data.repository.DictionaryKanjiRepository
 import com.jpmigaku.app.data.repository.VocabularyRepository
 import com.jpmigaku.app.domain.model.Deck
+import com.jpmigaku.app.domain.model.DictionaryVocabulary
+import com.jpmigaku.app.domain.model.DictionaryKanji
 import com.jpmigaku.app.domain.model.VocabularyEntry
 import com.jpmigaku.app.domain.usecase.CreateDeckUseCase
 import com.jpmigaku.app.domain.usecase.CreateVocabularyUseCase
@@ -15,6 +20,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.CancellationException
 import javax.inject.Inject
 
 enum class StudyArea {
@@ -34,26 +41,66 @@ class HomeViewModel @Inject constructor(
     private val createVocabularyUseCase: CreateVocabularyUseCase,
     private val createDeckUseCase: CreateDeckUseCase,
     private val reviewVocabularyUseCase: ReviewVocabularyUseCase,
-    private val searchVocabularyUseCase: SearchVocabularyUseCase
+    private val searchVocabularyUseCase: SearchVocabularyUseCase,
+    private val dictionaryVocabularyRepository: DictionaryVocabularyRepository,
+    private val dictionaryKanjiRepository: DictionaryKanjiRepository,
+    private val dictionaryAssetImporter: DictionaryAssetImporter
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState = _uiState.asStateFlow()
+    private var dictionarySearchJob: Job? = null
+    private var kanjiSearchJob: Job? = null
+    private val dictionaryImportJob: Job
 
     init {
-        viewModelScope.launch {
+        dictionaryImportJob = viewModelScope.launch {
+            try {
+                dictionaryAssetImporter.importIfNeeded()
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                _uiState.update {
+                    it.copy(feedback = "No se pudo cargar el diccionario: ${error.message}")
+                }
+            }
             refreshState()
         }
     }
 
     fun onAddVocabularyClicked() {
+        _uiState.update {
+            it.copy(
+                screen = HomeScreen.AddVocabulary,
+                feedback = null,
+                dictionaryQuery = "",
+                dictionaryResults = emptyList(),
+                selectedDictionaryVocabulary = null
+            )
+        }
         viewModelScope.launch {
             refreshState()
-            _uiState.update { it.copy(screen = HomeScreen.AddVocabulary, feedback = null) }
+        }
+    }
+
+    fun onAddManualVocabularyClicked() {
+        viewModelScope.launch {
+            refreshState()
+            _uiState.update {
+                it.copy(screen = HomeScreen.PersonalVocabulary, feedback = null)
+            }
         }
     }
 
     fun onAddKanjiClicked() {
-        _uiState.update { it.copy(screen = HomeScreen.AddKanji, feedback = null) }
+        _uiState.update {
+            it.copy(
+                screen = HomeScreen.AddKanji,
+                feedback = null,
+                kanjiQuery = "",
+                kanjiResults = emptyList(),
+                selectedDictionaryKanji = null
+            )
+        }
     }
 
     fun onStudyAreaChanged(area: StudyArea) {
@@ -127,6 +174,116 @@ class HomeViewModel @Inject constructor(
 
     fun onJapaneseChanged(value: String) {
         _uiState.update { it.copy(addJapanese = value) }
+    }
+
+    fun onDictionaryQueryChanged(value: String) {
+        _uiState.update {
+            it.copy(
+                dictionaryQuery = value,
+                selectedDictionaryVocabulary = null,
+                dictionaryResults = if (value.isBlank()) emptyList() else it.dictionaryResults
+            )
+        }
+        dictionarySearchJob?.cancel()
+        if (value.isBlank()) return
+
+        dictionarySearchJob = viewModelScope.launch {
+            dictionaryImportJob.join()
+            val results = dictionaryVocabularyRepository.search(value, limit = 20)
+            if (_uiState.value.dictionaryQuery == value) {
+                _uiState.update { it.copy(dictionaryResults = results) }
+            }
+
+        }
+    }
+
+    fun onClipboardSearchLoaded(text: String?) {
+        val normalized = text?.trim().orEmpty()
+        if (normalized.isBlank()) {
+            _uiState.update { it.copy(feedback = "El portapapeles está vacío") }
+            return
+        }
+        onDictionaryQueryChanged(normalized)
+    }
+
+    fun onDictionaryVocabularySelected(entry: DictionaryVocabulary) {
+        _uiState.update { it.copy(selectedDictionaryVocabulary = entry) }
+    }
+
+    fun onKanjiQueryChanged(value: String) {
+        _uiState.update {
+            it.copy(
+                kanjiQuery = value,
+                selectedDictionaryKanji = null,
+                kanjiResults = if (value.isBlank()) emptyList() else it.kanjiResults
+            )
+        }
+        kanjiSearchJob?.cancel()
+        if (value.isBlank()) return
+
+        kanjiSearchJob = viewModelScope.launch {
+            dictionaryImportJob.join()
+            val results = dictionaryKanjiRepository.search(value, limit = 20)
+            if (_uiState.value.kanjiQuery == value) {
+                _uiState.update { it.copy(kanjiResults = results) }
+            }
+        }
+    }
+
+    fun onDictionaryKanjiSelected(entry: DictionaryKanji) {
+        _uiState.update { it.copy(selectedDictionaryKanji = entry) }
+    }
+
+    fun onSelectedDictionaryKanjiDismissed() {
+        _uiState.update { it.copy(selectedDictionaryKanji = null) }
+    }
+
+    fun onAddSelectedDictionaryKanji() {
+        val current = _uiState.value
+        val entry = current.selectedDictionaryKanji ?: return
+        viewModelScope.launch {
+            createVocabularyUseCase(
+                japanese = entry.character,
+                reading = entry.kunyomi.ifBlank { entry.onyomi },
+                meaningEs = entry.meaning,
+                deckId = current.selectedDeckId
+            )
+            refreshState()
+            _uiState.update {
+                it.copy(
+                    selectedDictionaryKanji = null,
+                    kanjiQuery = "",
+                    kanjiResults = emptyList(),
+                    feedback = "Kanji añadido: ${entry.character}"
+                )
+            }
+        }
+    }
+
+    fun onSelectedDictionaryVocabularyDismissed() {
+        _uiState.update { it.copy(selectedDictionaryVocabulary = null) }
+    }
+
+    fun onAddSelectedDictionaryVocabulary() {
+        val current = _uiState.value
+        val entry = current.selectedDictionaryVocabulary ?: return
+        viewModelScope.launch {
+            createVocabularyUseCase(
+                japanese = entry.japanese,
+                reading = entry.reading,
+                meaningEs = entry.meaning,
+                deckId = current.selectedDeckId
+            )
+            refreshState()
+            _uiState.update {
+                it.copy(
+                    selectedDictionaryVocabulary = null,
+                    dictionaryQuery = "",
+                    dictionaryResults = emptyList(),
+                    feedback = "Añadido: ${entry.japanese}"
+                )
+            }
+        }
     }
 
     fun onReadingChanged(value: String) {
@@ -266,6 +423,7 @@ sealed interface HomeAction {
 sealed interface HomeScreen {
     data object Home : HomeScreen
     data object AddVocabulary : HomeScreen
+    data object PersonalVocabulary : HomeScreen
     data object AddKanji : HomeScreen
     data object QuizMode : HomeScreen
     data object Quiz : HomeScreen
@@ -291,5 +449,12 @@ data class HomeUiState(
     val quizFeedback: String? = null,
     val quizCompleted: Boolean = false,
     val searchQuery: String = "",
-    val searchResults: List<VocabularyEntry> = emptyList()
+    val searchResults: List<VocabularyEntry> = emptyList(),
+    val dictionaryQuery: String = "",
+    val dictionaryResults: List<DictionaryVocabulary> = emptyList(),
+    val selectedDictionaryVocabulary: DictionaryVocabulary? = null
+    ,
+    val kanjiQuery: String = "",
+    val kanjiResults: List<DictionaryKanji> = emptyList(),
+    val selectedDictionaryKanji: DictionaryKanji? = null
 )

@@ -22,6 +22,7 @@ interface DictionaryVocabularyDao {
         SELECT * FROM dictionary_vocabulary
         WHERE japanese LIKE '%' || :query || '%'
            OR reading LIKE '%' || :query || '%'
+           OR romaji LIKE '%' || :query || '%'
            OR spanishGlosses LIKE '%' || :query || '%'
            OR englishGlosses LIKE '%' || :query || '%'
         ORDER BY japanese
