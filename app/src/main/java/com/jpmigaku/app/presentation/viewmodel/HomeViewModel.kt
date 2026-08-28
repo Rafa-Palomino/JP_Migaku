@@ -2,6 +2,7 @@ package com.jpmigaku.app.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.jpmigaku.app.data.local.DictionaryAssetImporter
 import com.jpmigaku.app.data.repository.DeckRepository
 import com.jpmigaku.app.data.repository.DictionaryVocabularyRepository
 import com.jpmigaku.app.data.repository.DictionaryKanjiRepository
@@ -20,6 +21,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.CancellationException
 import javax.inject.Inject
 
 enum class StudyArea {
@@ -41,21 +43,33 @@ class HomeViewModel @Inject constructor(
     private val reviewVocabularyUseCase: ReviewVocabularyUseCase,
     private val searchVocabularyUseCase: SearchVocabularyUseCase,
     private val dictionaryVocabularyRepository: DictionaryVocabularyRepository,
-    private val dictionaryKanjiRepository: DictionaryKanjiRepository
+    private val dictionaryKanjiRepository: DictionaryKanjiRepository,
+    private val dictionaryAssetImporter: DictionaryAssetImporter
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState = _uiState.asStateFlow()
     private var dictionarySearchJob: Job? = null
     private var kanjiSearchJob: Job? = null
+    private val dictionaryImportJob: Job
 
     init {
-        viewModelScope.launch {
+        dictionaryImportJob = viewModelScope.launch {
+            try {
+                dictionaryAssetImporter.importIfNeeded()
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                _uiState.update {
+                    it.copy(feedback = "No se pudo cargar el diccionario: ${error.message}")
+                }
+            }
             refreshState()
         }
     }
 
     fun onAddVocabularyClicked() {
         viewModelScope.launch {
+            dictionaryImportJob.join()
             refreshState()
             _uiState.update {
                 it.copy(
@@ -79,14 +93,17 @@ class HomeViewModel @Inject constructor(
     }
 
     fun onAddKanjiClicked() {
-        _uiState.update {
-            it.copy(
-                screen = HomeScreen.AddKanji,
-                feedback = null,
-                kanjiQuery = "",
-                kanjiResults = emptyList(),
-                selectedDictionaryKanji = null
-            )
+        viewModelScope.launch {
+            dictionaryImportJob.join()
+            _uiState.update {
+                it.copy(
+                    screen = HomeScreen.AddKanji,
+                    feedback = null,
+                    kanjiQuery = "",
+                    kanjiResults = emptyList(),
+                    selectedDictionaryKanji = null
+                )
+            }
         }
     }
 
@@ -175,6 +192,7 @@ class HomeViewModel @Inject constructor(
         if (value.isBlank()) return
 
         dictionarySearchJob = viewModelScope.launch {
+            dictionaryImportJob.join()
             val results = dictionaryVocabularyRepository.search(value, limit = 20)
             if (_uiState.value.dictionaryQuery == value) {
                 _uiState.update { it.copy(dictionaryResults = results) }
@@ -208,6 +226,7 @@ class HomeViewModel @Inject constructor(
         if (value.isBlank()) return
 
         kanjiSearchJob = viewModelScope.launch {
+            dictionaryImportJob.join()
             val results = dictionaryKanjiRepository.search(value, limit = 20)
             if (_uiState.value.kanjiQuery == value) {
                 _uiState.update { it.copy(kanjiResults = results) }
