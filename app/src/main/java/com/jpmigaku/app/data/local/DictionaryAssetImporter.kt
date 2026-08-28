@@ -419,13 +419,19 @@ class DictionaryAssetImporter @Inject constructor(
             when (reader.nextName()) {
                 "literal" -> character = reader.nextString()
                 "misc" -> readKanjiMisc(reader) { jlptLevel = it }
-                "readingMeaning" -> readKanjiReadingsAndMeanings(
-                    reader,
-                    spanishMeanings,
-                    englishMeanings,
-                    onyomi,
-                    kunyomi
-                )
+                "readingMeaning" -> {
+                    if (reader.peek() == android.util.JsonToken.NULL) {
+                        reader.nextNull()
+                    } else {
+                        readKanjiReadingsAndMeanings(
+                            reader,
+                            spanishMeanings,
+                            englishMeanings,
+                            onyomi,
+                            kunyomi
+                        )
+                    }
+                }
                 else -> reader.skipValue()
             }
         }
