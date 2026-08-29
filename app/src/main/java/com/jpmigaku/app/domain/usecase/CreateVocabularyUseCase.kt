@@ -12,7 +12,14 @@ class CreateVocabularyUseCase @Inject constructor(
         japanese: String,
         reading: String,
         meaningEs: String,
-        deckId: String? = null
+        deckId: String? = null,
+        kind: String = "VOCABULARY",
+        sourceProvider: String = "manual",
+        sourceKey: String? = null,
+        sourceVersion: String = "1",
+        romaji: String = "",
+        sourceSnapshot: String? = null,
+        deckIds: List<String> = emptyList()
     ): VocabularyEntry {
         val normalizedJapanese = japanese.trim()
         val normalizedReading = reading.trim()
@@ -30,7 +37,18 @@ class CreateVocabularyUseCase @Inject constructor(
             deckId = deckId
         )
 
-        repository.save(entry)
-        return entry
+        return repository.saveStudyCard(
+            kind = kind,
+            sourceProvider = sourceProvider,
+            sourceKey = sourceKey ?: entry.id,
+            sourceVersion = sourceVersion,
+            japanese = entry.japanese,
+            reading = entry.reading,
+            meaning = entry.meaningEs,
+            deckId = deckId,
+            deckIds = deckIds,
+            romaji = romaji,
+            sourceSnapshot = sourceSnapshot
+        )
     }
 }

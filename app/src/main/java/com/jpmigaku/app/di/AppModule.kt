@@ -2,6 +2,7 @@ package com.jpmigaku.app.di
 
 import android.content.Context
 import androidx.room.Room
+import com.jpmigaku.app.data.local.DictionaryCatalogDatabase
 import com.jpmigaku.app.data.local.JPMigakuDatabase
 import com.jpmigaku.app.data.repository.DeckRepository
 import com.jpmigaku.app.data.repository.DictionaryVocabularyRepository
@@ -34,6 +35,12 @@ object AppModule {
 
     @Provides
     @Singleton
+    fun provideDictionaryCatalogDatabase(@ApplicationContext context: Context): DictionaryCatalogDatabase {
+        return Room.databaseBuilder(context, DictionaryCatalogDatabase::class.java, "jpmigaku-dictionary.db").fallbackToDestructiveMigration().build()
+    }
+
+    @Provides
+    @Singleton
     fun provideVocabularyRepository(database: JPMigakuDatabase): VocabularyRepository {
         return RoomVocabularyRepository(database)
     }
@@ -46,15 +53,13 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideDictionaryVocabularyRepository(
-        database: JPMigakuDatabase
-    ): DictionaryVocabularyRepository {
-        return RoomDictionaryVocabularyRepository(database.dictionaryVocabularyDao())
+    fun provideDictionaryVocabularyRepository(catalog: DictionaryCatalogDatabase): DictionaryVocabularyRepository {
+        return RoomDictionaryVocabularyRepository(catalog.dictionaryVocabularyDao())
     }
 
     @Provides
     @Singleton
-    fun provideDictionaryKanjiRepository(database: JPMigakuDatabase): DictionaryKanjiRepository {
-        return RoomDictionaryKanjiRepository(database.dictionaryKanjiDao())
+    fun provideDictionaryKanjiRepository(catalog: DictionaryCatalogDatabase): DictionaryKanjiRepository {
+        return RoomDictionaryKanjiRepository(catalog.dictionaryKanjiDao())
     }
 }

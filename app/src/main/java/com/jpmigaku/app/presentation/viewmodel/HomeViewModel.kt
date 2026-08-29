@@ -152,6 +152,38 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    fun onManageDecksClicked() {
+        viewModelScope.launch {
+            refreshState()
+            _uiState.update { it.copy(screen = HomeScreen.Decks, feedback = null) }
+        }
+    }
+
+    fun onDeckOpened(deckId: String) {
+        viewModelScope.launch {
+            val deck = _uiState.value.decks.firstOrNull { it.id == deckId } ?: return@launch
+            val entries = vocabularyRepository.getByDeck(deck.id)
+            _uiState.update {
+                it.copy(
+                    screen = HomeScreen.DeckDetail,
+                    managedDeckId = deck.id,
+                    selectedDeckIds = setOf(deck.id),
+                    managedDeckEntries = entries
+                )
+            }
+        }
+    }
+
+    fun onRemoveEntryFromDeck(entry: VocabularyEntry) {
+        val deckId = _uiState.value.managedDeckId ?: return
+        viewModelScope.launch {
+            vocabularyRepository.removeFromDeck(entry.id, deckId)
+            _uiState.update {
+                it.copy(managedDeckEntries = vocabularyRepository.getByDeck(deckId))
+            }
+        }
+    }
+
     fun onBackClicked() {
         _uiState.update { it.copy(screen = HomeScreen.Home, feedback = null) }
     }
@@ -246,7 +278,12 @@ class HomeViewModel @Inject constructor(
                 japanese = entry.character,
                 reading = entry.kunyomi.ifBlank { entry.onyomi },
                 meaningEs = entry.meaning,
-                deckId = current.selectedDeckId
+                deckIds = current.selectedDeckIds.toList(),
+                kind = "KANJI",
+                sourceProvider = "kanjidic2",
+                sourceKey = entry.character,
+                sourceVersion = "3.6.2",
+                sourceSnapshot = "${entry.character}|${entry.onyomi}|${entry.kunyomi}|${entry.meaning}"
             )
             refreshState()
             _uiState.update {
@@ -272,7 +309,13 @@ class HomeViewModel @Inject constructor(
                 japanese = entry.japanese,
                 reading = entry.reading,
                 meaningEs = entry.meaning,
-                deckId = current.selectedDeckId
+                deckIds = current.selectedDeckIds.toList(),
+                kind = "VOCABULARY",
+                sourceProvider = "jmdict",
+                sourceKey = entry.sequenceId,
+                sourceVersion = "3.6.2",
+                romaji = entry.romaji,
+                sourceSnapshot = "${entry.japanese}|${entry.reading}|${entry.romaji}|${entry.meaning}"
             )
             refreshState()
             _uiState.update {
@@ -295,7 +338,12 @@ class HomeViewModel @Inject constructor(
     }
 
     fun onDeckSelected(deckId: String?) {
-        _uiState.update { it.copy(selectedDeckId = deckId) }
+        if (deckId == null) return
+        _uiState.update { state ->
+            val selected = state.selectedDeckIds.toMutableSet()
+            if (!selected.add(deckId)) selected.remove(deckId)
+            state.copy(selectedDeckIds = selected)
+        }
     }
 
     fun onDeckNameChanged(value: String) {
@@ -314,7 +362,7 @@ class HomeViewModel @Inject constructor(
             refreshState()
             _uiState.update {
                 it.copy(
-                    selectedDeckId = created.id,
+                    selectedDeckIds = it.selectedDeckIds + created.id,
                     newDeckName = "",
                     feedback = "Deck creado: ${created.name}"
                 )
@@ -350,7 +398,7 @@ class HomeViewModel @Inject constructor(
                 japanese = current.addJapanese,
                 reading = current.addReading,
                 meaningEs = current.addMeaning,
-                deckId = current.selectedDeckId
+                deckIds = current.selectedDeckIds.toList()
             )
 
             refreshState()
@@ -399,15 +447,23 @@ class HomeViewModel @Inject constructor(
     }
 
     private suspend fun refreshState() {
-        val decks = deckRepository.listDecks().ifEmpty {
-            listOf(createDeckUseCase("General"))
+        val storedDecks = deckRepository.listDecks()
+        val decks = if (storedDecks.none { it.name == "Vocabulario" }) {
+            storedDecks + createDeckUseCase("Vocabulario")
+        } else {
+            storedDecks
         }
+        val defaultDeck = decks.firstOrNull { it.name == "Vocabulario" }
         val vocabulary = vocabularyRepository.getAll()
         _uiState.update { state ->
             state.copy(
                 decks = decks,
                 vocabularies = vocabulary,
-                selectedDeckId = state.selectedDeckId ?: decks.firstOrNull()?.id
+                selectedDeckIds = if (state.selectedDeckIds.isEmpty()) {
+                    setOfNotNull(defaultDeck?.id)
+                } else {
+                    state.selectedDeckIds.intersect(decks.map { it.id }.toSet())
+                }
             )
         }
     }
@@ -430,6 +486,8 @@ sealed interface HomeScreen {
     data object List : HomeScreen
     data object Search : HomeScreen
     data object Statistics : HomeScreen
+    data object Decks : HomeScreen
+    data object DeckDetail : HomeScreen
 }
 
 data class HomeUiState(
@@ -440,7 +498,9 @@ data class HomeUiState(
     val addReading: String = "",
     val addMeaning: String = "",
     val newDeckName: String = "",
-    val selectedDeckId: String? = null,
+    val selectedDeckIds: Set<String> = emptySet(),
+    val managedDeckId: String? = null,
+    val managedDeckEntries: List<VocabularyEntry> = emptyList(),
     val decks: List<Deck> = emptyList(),
     val vocabularies: List<VocabularyEntry> = emptyList(),
     val quizMode: QuizMode = QuizMode.JAPANESE_TO_SPANISH,
