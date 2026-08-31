@@ -20,6 +20,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -43,7 +44,12 @@ import com.jpmigaku.app.presentation.viewmodel.StudyArea
 @Composable
 fun JPMigakuApp() {
     MaterialTheme {
-        JPMigakuHomeScreen()
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = Color.White
+        ) {
+            JPMigakuHomeScreen()
+        }
     }
 }
 
@@ -68,6 +74,8 @@ fun JPMigakuHomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
             HomeScreen.Quiz -> QuizContent(uiState, viewModel)
             HomeScreen.Search -> SearchContent(uiState, viewModel)
             HomeScreen.Statistics -> StatisticsContent(uiState, viewModel)
+            HomeScreen.Decks -> DecksContent(uiState, viewModel)
+            HomeScreen.DeckDetail -> DeckDetailContent(uiState, viewModel)
         }
     }
 }
@@ -117,6 +125,14 @@ private fun HomeContent(uiState: com.jpmigaku.app.presentation.viewmodel.HomeUiS
         )
     ) {
         Text(stringResource(R.string.statistics_button))
+    }
+    Spacer(modifier = Modifier.height(8.dp))
+    Button(
+        onClick = viewModel::onManageDecksClicked,
+        modifier = Modifier.fillMaxWidth(),
+        colors = ButtonDefaults.buttonColors(containerColor = Color.Red, contentColor = Color.White)
+    ) {
+        Text(stringResource(R.string.manage_decks_button))
     }
 
     Spacer(modifier = Modifier.height(24.dp))
@@ -356,9 +372,9 @@ private fun AddVocabularyContent(uiState: com.jpmigaku.app.presentation.viewmode
 
     Text(text = stringResource(R.string.deck_selector_title))
     uiState.decks.forEach { deck ->
-        val selected = deck.id == uiState.selectedDeckId
+        val selected = deck.id in uiState.selectedDeckIds
         Spacer(modifier = Modifier.height(4.dp))
-        Button(onClick = { viewModel.onDeckSelected(deck.id) }, enabled = !selected) {
+        RedButton(onClick = { viewModel.onDeckSelected(deck.id) }) {
             Text(if (selected) "${deck.name} ✓" else deck.name)
         }
     }
@@ -479,12 +495,13 @@ private fun DeckManagementContent(
 ) {
     Text(text = stringResource(R.string.deck_selector_title))
     uiState.decks.forEach { deck ->
-        val selected = deck.id == uiState.selectedDeckId
+        val selected = deck.id in uiState.selectedDeckIds
         Spacer(modifier = Modifier.height(4.dp))
-        RedButton(onClick = { viewModel.onDeckSelected(deck.id) }, enabled = !selected) {
+        RedButton(onClick = { viewModel.onDeckSelected(deck.id) }) {
             Text(if (selected) "${deck.name} ✓" else deck.name)
         }
     }
+
     Spacer(modifier = Modifier.height(8.dp))
     OutlinedTextField(
         value = uiState.newDeckName,
@@ -496,6 +513,59 @@ private fun DeckManagementContent(
     Spacer(modifier = Modifier.height(8.dp))
     RedButton(onClick = viewModel::onCreateDeckClicked) {
         Text(stringResource(R.string.create_deck_button))
+    }
+}
+
+@Composable
+private fun DecksContent(
+    uiState: com.jpmigaku.app.presentation.viewmodel.HomeUiState,
+    viewModel: HomeViewModel
+) {
+    Text(stringResource(R.string.manage_decks_title), style = MaterialTheme.typography.headlineSmall)
+    Spacer(modifier = Modifier.height(12.dp))
+    uiState.decks.forEach { deck ->
+        RedButton(onClick = { viewModel.onDeckOpened(deck.id) }) {
+            Text(deck.name)
+        }
+        Spacer(modifier = Modifier.height(6.dp))
+    }
+    RedButton(onClick = viewModel::onBackClicked) {
+        Text(stringResource(R.string.back_button))
+    }
+}
+
+@Composable
+private fun DeckDetailContent(
+    uiState: com.jpmigaku.app.presentation.viewmodel.HomeUiState,
+    viewModel: HomeViewModel
+) {
+    val deck = uiState.decks.firstOrNull { it.id == uiState.managedDeckId }
+    Text(deck?.name ?: stringResource(R.string.manage_decks_title), style = MaterialTheme.typography.headlineSmall)
+    Spacer(modifier = Modifier.height(12.dp))
+    RedButton(onClick = viewModel::onAddVocabularyClicked) {
+        Text(stringResource(R.string.add_vocab_button))
+    }
+    Spacer(modifier = Modifier.height(12.dp))
+    LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        items(uiState.managedDeckEntries, key = { it.id }) { entry ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(entry.japanese, style = MaterialTheme.typography.titleMedium)
+                    Text("${entry.reading} · ${entry.meaningEs}")
+                }
+                RedButton(onClick = { viewModel.onRemoveEntryFromDeck(entry) }) {
+                    Text(stringResource(R.string.remove_button))
+                }
+            }
+        }
+    }
+    Spacer(modifier = Modifier.height(12.dp))
+    RedButton(onClick = viewModel::onBackClicked) {
+        Text(stringResource(R.string.back_button))
     }
 }
 

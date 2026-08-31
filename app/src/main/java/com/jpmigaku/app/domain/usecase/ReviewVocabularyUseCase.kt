@@ -32,7 +32,6 @@ class ReviewVocabularyUseCase @Inject constructor(
             reviewCount = entry.reviewCount + 1
         )
 
-        repository.update(updated)
-        return updated
+        return repository.recordReview(updated, wasCorrect)
     }
 }

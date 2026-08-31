@@ -9,6 +9,9 @@
     <string name="search_entries_button">Buscar entradas</string>
     <string name="browse_button">Ver todo</string>
     <string name="statistics_button">Ver Estadísticas</string>
+    <string name="manage_decks_button">Gestionar decks</string>
+    <string name="manage_decks_title">Gestionar decks</string>
+    <string name="remove_button">Eliminar</string>
     <string name="statistics_title">Estadísticas</string>
     <string name="statistics_vocab_count">Vocabulario guardado: %1$d</string>
     <string name="statistics_deck_count">Decks: %1$d</string>
