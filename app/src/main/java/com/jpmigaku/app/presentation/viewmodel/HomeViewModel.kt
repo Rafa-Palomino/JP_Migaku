@@ -50,21 +50,10 @@ class HomeViewModel @Inject constructor(
     val uiState = _uiState.asStateFlow()
     private var dictionarySearchJob: Job? = null
     private var kanjiSearchJob: Job? = null
-    private val dictionaryImportJob: Job
+    private var dictionaryImportJob: Job? = null
 
     init {
-        dictionaryImportJob = viewModelScope.launch {
-            try {
-                dictionaryAssetImporter.importIfNeeded()
-            } catch (error: CancellationException) {
-                throw error
-            } catch (error: Exception) {
-                _uiState.update {
-                    it.copy(feedback = "No se pudo cargar el diccionario: ${error.message}")
-                }
-            }
-            refreshState()
-        }
+        viewModelScope.launch { refreshState() }
     }
 
     fun onAddVocabularyClicked() {
@@ -220,7 +209,7 @@ class HomeViewModel @Inject constructor(
         if (value.isBlank()) return
 
         dictionarySearchJob = viewModelScope.launch {
-            dictionaryImportJob.join()
+            ensureDictionaryImport().join()
             val results = dictionaryVocabularyRepository.search(value, limit = 20)
             if (_uiState.value.dictionaryQuery == value) {
                 _uiState.update { it.copy(dictionaryResults = results) }
@@ -254,7 +243,7 @@ class HomeViewModel @Inject constructor(
         if (value.isBlank()) return
 
         kanjiSearchJob = viewModelScope.launch {
-            dictionaryImportJob.join()
+            ensureDictionaryImport().join()
             val results = dictionaryKanjiRepository.search(value, limit = 20)
             if (_uiState.value.kanjiQuery == value) {
                 _uiState.update { it.copy(kanjiResults = results) }
@@ -466,6 +455,30 @@ class HomeViewModel @Inject constructor(
                 }
             )
         }
+    }
+
+    private fun ensureDictionaryImport(): Job {
+        dictionaryImportJob?.let { return it }
+
+        return viewModelScope.launch {
+            _uiState.update { it.copy(feedback = "Cargando diccionario local...") }
+            try {
+                dictionaryAssetImporter.importIfNeeded()
+                _uiState.update { state ->
+                    if (state.feedback == "Cargando diccionario local...") {
+                        state.copy(feedback = null)
+                    } else {
+                        state
+                    }
+                }
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                _uiState.update {
+                    it.copy(feedback = "No se pudo cargar el diccionario: ${error.message}")
+                }
+            }
+        }.also { dictionaryImportJob = it }
     }
 }
 

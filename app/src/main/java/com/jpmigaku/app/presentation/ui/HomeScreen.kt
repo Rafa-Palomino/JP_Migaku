@@ -20,6 +20,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -43,7 +44,12 @@ import com.jpmigaku.app.presentation.viewmodel.StudyArea
 @Composable
 fun JPMigakuApp() {
     MaterialTheme {
-        JPMigakuHomeScreen()
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = Color.White
+        ) {
+            JPMigakuHomeScreen()
+        }
     }
 }
 
