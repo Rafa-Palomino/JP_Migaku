@@ -76,3 +76,7 @@ node_modules/
 # Gradle
 gradle-wrapper-extract/
 .gradle/
+
+# Local Android metadata and generated wrapper files
+/local.properties
+/META-INF/
