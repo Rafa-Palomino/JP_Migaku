@@ -26,10 +26,13 @@ pgdata/
 .DS_Store
 Thumbs.db
 .idea/
-.github/instructions/
+.github/
+.artifacts/
 
 #Project files
-docs/goals.md
+docs/
+architecture/
+
 
 # Logs
 *.log
