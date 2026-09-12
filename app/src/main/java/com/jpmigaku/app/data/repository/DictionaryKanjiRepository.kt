@@ -6,14 +6,14 @@ import com.jpmigaku.app.domain.model.DictionaryKanji
 import javax.inject.Inject
 
 interface DictionaryKanjiRepository {
-    suspend fun search(query: String, limit: Int = 20): List<DictionaryKanji>
+    suspend fun search(query: String): List<DictionaryKanji>
 }
 
 class RoomDictionaryKanjiRepository @Inject constructor(
     private val dao: DictionaryKanjiDao
 ) : DictionaryKanjiRepository {
-    override suspend fun search(query: String, limit: Int): List<DictionaryKanji> =
-        dao.search(query.trim(), limit).map { it.toDomain() }
+    override suspend fun search(query: String): List<DictionaryKanji> =
+        dao.search(query.trim()).map { it.toDomain() }
 
     private fun DictionaryKanjiEntity.toDomain(): DictionaryKanji {
         val spanish = spanishMeanings.split(LIST_SEPARATOR).firstOrNull(String::isNotBlank)

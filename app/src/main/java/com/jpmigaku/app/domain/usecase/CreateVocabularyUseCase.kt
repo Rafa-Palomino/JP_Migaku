@@ -33,6 +33,8 @@ class CreateVocabularyUseCase @Inject constructor(
             japanese = normalizedJapanese,
             reading = normalizedReading.ifEmpty { normalizedJapanese },
             meaningEs = normalizedMeaning,
+            kind = kind,
+            romaji = romaji,
             createdAt = System.currentTimeMillis(),
             deckId = deckId
         )

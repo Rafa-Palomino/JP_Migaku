@@ -23,9 +23,20 @@ interface DictionaryKanjiDao {
         WHERE character LIKE '%' || :query || '%'
            OR spanishMeanings LIKE '%' || :query || '%'
            OR englishMeanings LIKE '%' || :query || '%'
-        ORDER BY character
-        LIMIT :limit
+           OR onyomi LIKE '%' || :query || '%'
+           OR kunyomi LIKE '%' || :query || '%'
+        ORDER BY
+            CASE
+                WHEN character LIKE :query || '%'
+                  OR spanishMeanings LIKE :query || '%'
+                  OR englishMeanings LIKE :query || '%'
+                  OR onyomi LIKE :query || '%'
+                  OR kunyomi LIKE :query || '%'
+                THEN 0
+                ELSE 1
+            END,
+            character DESC
         """
     )
-    suspend fun search(query: String, limit: Int): List<DictionaryKanjiEntity>
+    suspend fun search(query: String): List<DictionaryKanjiEntity>
 }

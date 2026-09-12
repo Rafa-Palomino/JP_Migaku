@@ -29,6 +29,16 @@ interface StudyCardDao {
     @Query("SELECT * FROM study_cards ORDER BY createdAt DESC")
     suspend fun getAllCards(): List<StudyCardEntity>
 
+    @Query(
+        """
+        SELECT * FROM study_cards
+        WHERE suspended = 0
+          AND (:kind IS NULL OR kind = :kind)
+        ORDER BY createdAt ASC
+        """
+    )
+    suspend fun getCardsForReview(kind: String? = null): List<StudyCardEntity>
+
     @Query("SELECT * FROM study_cards WHERE id = :id")
     suspend fun getCard(id: String): StudyCardEntity?
 
@@ -53,6 +63,9 @@ interface StudyCardDao {
 
     @Query("SELECT cardId FROM card_decks WHERE deckId = :deckId")
     suspend fun getCardIdsByDeck(deckId: String): List<String>
+
+    @Query("SELECT COUNT(*) FROM card_decks WHERE deckId = :deckId")
+    suspend fun countCardsByDeck(deckId: String): Int
 
     @Query(
         """

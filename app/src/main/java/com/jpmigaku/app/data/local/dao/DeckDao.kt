@@ -13,4 +13,7 @@ interface DeckDao {
 
     @Query("SELECT * FROM decks ORDER BY createdAt DESC")
     suspend fun getAll(): List<DeckEntity>
+
+    @Query("DELETE FROM decks WHERE id = :deckId")
+    suspend fun delete(deckId: String)
 }

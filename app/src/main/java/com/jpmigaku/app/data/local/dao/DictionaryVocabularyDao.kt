@@ -25,9 +25,18 @@ interface DictionaryVocabularyDao {
            OR romaji LIKE '%' || :query || '%'
            OR spanishGlosses LIKE '%' || :query || '%'
            OR englishGlosses LIKE '%' || :query || '%'
-        ORDER BY japanese
-        LIMIT :limit
+        ORDER BY
+            CASE
+                WHEN japanese LIKE :query || '%'
+                  OR reading LIKE :query || '%'
+                  OR romaji LIKE :query || '%'
+                  OR spanishGlosses LIKE :query || '%'
+                  OR englishGlosses LIKE :query || '%'
+                THEN 0
+                ELSE 1
+            END,
+            japanese DESC
         """
     )
-    suspend fun search(query: String, limit: Int): List<DictionaryVocabularyEntity>
+    suspend fun search(query: String): List<DictionaryVocabularyEntity>
 }

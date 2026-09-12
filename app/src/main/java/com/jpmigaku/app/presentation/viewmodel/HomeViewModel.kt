@@ -1,5 +1,6 @@
 package com.jpmigaku.app.presentation.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jpmigaku.app.data.local.DictionaryAssetImporter
@@ -16,6 +17,7 @@ import com.jpmigaku.app.domain.usecase.CreateVocabularyUseCase
 import com.jpmigaku.app.domain.usecase.ReviewVocabularyUseCase
 import com.jpmigaku.app.domain.usecase.SearchVocabularyUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -29,13 +31,27 @@ enum class StudyArea {
     VOCABULARY
 }
 
+/**
+ * Defines the prompt and answer direction for a quiz session.
+ */
 enum class QuizMode {
+    STUDY,
+    KANJI_STUDY,
     JAPANESE_TO_SPANISH,
-    SPANISH_TO_JAPANESE
+    JAPANESE_TO_SPANISH_SELECTION,
+    JAPANESE_TO_SPANISH_WRITTEN,
+    SPANISH_TO_JAPANESE,
+    SPANISH_TO_JAPANESE_SELECTION,
+    SPANISH_TO_JAPANESE_WRITTEN,
+    KANJI_TO_SPANISH_SELECTION,
+    SPANISH_TO_KANJI_SELECTION,
+    KANJI_TO_READINGS_SELECTION,
+    READINGS_TO_KANJI_SELECTION
 }
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
+    @ApplicationContext context: Context,
     private val vocabularyRepository: VocabularyRepository,
     private val deckRepository: DeckRepository,
     private val createVocabularyUseCase: CreateVocabularyUseCase,
@@ -46,6 +62,7 @@ class HomeViewModel @Inject constructor(
     private val dictionaryKanjiRepository: DictionaryKanjiRepository,
     private val dictionaryAssetImporter: DictionaryAssetImporter
 ) : ViewModel() {
+    private val preferences = context.getSharedPreferences("jpmigaku_settings", Context.MODE_PRIVATE)
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState = _uiState.asStateFlow()
     private var dictionarySearchJob: Job? = null
@@ -63,11 +80,21 @@ class HomeViewModel @Inject constructor(
                 feedback = null,
                 dictionaryQuery = "",
                 dictionaryResults = emptyList(),
-                selectedDictionaryVocabulary = null
+                selectedDictionaryVocabulary = null,
+                selectedDeckIds = it.decks.firstOrNull { deck -> deck.name == DEFAULT_VOCABULARY_DECK }
+                    ?.let { deck -> setOf(deck.id) }
+                    ?: emptySet()
             )
         }
         viewModelScope.launch {
             refreshState()
+            _uiState.update { state ->
+                state.copy(
+                    selectedDeckIds = state.decks.firstOrNull { it.name == DEFAULT_VOCABULARY_DECK }
+                        ?.let { setOf(it.id) }
+                        ?: emptySet()
+                )
+            }
         }
     }
 
@@ -75,7 +102,13 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             refreshState()
             _uiState.update {
-                it.copy(screen = HomeScreen.PersonalVocabulary, feedback = null)
+                it.copy(
+                    screen = HomeScreen.PersonalVocabulary,
+                    feedback = null,
+                    selectedDeckIds = it.decks.firstOrNull { deck -> deck.name == DEFAULT_VOCABULARY_DECK }
+                        ?.let { deck -> setOf(deck.id) }
+                        ?: emptySet()
+                )
             }
         }
     }
@@ -87,26 +120,66 @@ class HomeViewModel @Inject constructor(
                 feedback = null,
                 kanjiQuery = "",
                 kanjiResults = emptyList(),
-                selectedDictionaryKanji = null
+                selectedDictionaryKanji = null,
+                selectedDeckIds = it.decks.firstOrNull { deck -> deck.name == DEFAULT_KANJI_DECK }
+                    ?.let { deck -> setOf(deck.id) }
+                    ?: emptySet()
             )
+        }
+        viewModelScope.launch {
+            refreshState()
+            _uiState.update { state ->
+                    state.copy(
+                        selectedDeckIds = state.decks.firstOrNull { it.name == DEFAULT_KANJI_DECK }
+                            ?.let { setOf(it.id) }
+                            ?: emptySet()
+                    )
+            }
         }
     }
 
-    fun onStudyAreaChanged(area: StudyArea) {
-        _uiState.update { it.copy(studyArea = area) }
-    }
-
-    fun onPracticeQuizClicked() {
+    fun onQuizClicked(area: StudyArea) {
+        _uiState.update { it.copy(screen = HomeScreen.QuizMode, studyArea = area, feedback = null) }
         viewModelScope.launch {
             refreshState()
-            _uiState.update { it.copy(screen = HomeScreen.QuizMode, feedback = null) }
         }
     }
 
     fun onStartQuizClicked(mode: QuizMode) {
+        _uiState.update {
+            it.copy(
+                screen = HomeScreen.Quiz,
+                quizMode = mode,
+                quizEntry = null,
+                quizAnswer = "",
+                quizFeedback = null,
+                quizCompleted = false,
+                quizCorrectAnswers = 0,
+                quizIncorrectAnswers = 0,
+                quizOptions = emptyList()
+            )
+        }
         viewModelScope.launch {
-            val dueEntries = vocabularyRepository.getDue(limit = 1)
-            val nextEntry = dueEntries.firstOrNull()
+            val currentState = _uiState.value
+            val dueEntries = vocabularyRepository.getDue(
+                limit = currentState.vocabularies.size.coerceAtLeast(currentState.quizQuestionCount),
+                kind = mode.kindFilter()
+            )
+            val candidateEntries = dueEntries + currentState.vocabularies
+                .filter { entry ->
+                    entry.kind == mode.kindFilter() && dueEntries.none { dueEntry -> dueEntry.id == entry.id }
+                }
+            val quizQueue = buildQuizQueue(candidateEntries, currentState.quizQuestionCount)
+            val nextEntry = quizQueue.firstOrNull()
+            val options = nextEntry?.let {
+                buildQuizOptions(
+                    mode = mode,
+                    currentEntry = it,
+                    queue = quizQueue.drop(1),
+                    allEntries = currentState.vocabularies
+                )
+            } ?: emptyList()
+
             _uiState.update {
                 it.copy(
                     screen = HomeScreen.Quiz,
@@ -114,7 +187,12 @@ class HomeViewModel @Inject constructor(
                     quizEntry = nextEntry,
                     quizAnswer = "",
                     quizFeedback = null,
-                    quizCompleted = nextEntry == null
+                    quizCompleted = nextEntry == null,
+                    quizCorrectAnswers = 0,
+                    quizIncorrectAnswers = 0,
+                    quizEntries = quizQueue.drop(1),
+                    quizQuestionsRemaining = quizQueue.size,
+                    quizOptions = options
                 )
             }
         }
@@ -148,6 +226,31 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    fun onSettingsClicked() {
+        _uiState.update { it.copy(screen = HomeScreen.Settings, feedback = null) }
+    }
+
+    fun onShowRomajiChanged(value: Boolean) {
+        preferences.edit().putBoolean(SETTING_SHOW_ROMAJI, value).apply()
+        _uiState.update { it.copy(showRomaji = value) }
+    }
+
+    fun onShowKanaChanged(value: Boolean) {
+        preferences.edit().putBoolean(SETTING_SHOW_KANA, value).apply()
+        _uiState.update { it.copy(showKanaInVocabulary = value) }
+    }
+
+    fun onShowKanjiMeaningChanged(value: Boolean) {
+        preferences.edit().putBoolean(SETTING_SHOW_KANJI_MEANING, value).apply()
+        _uiState.update { it.copy(showKanjiMeaning = value) }
+    }
+
+    fun onQuizQuestionCountChanged(value: Int) {
+        require(value in QUIZ_QUESTION_COUNTS)
+        preferences.edit().putInt(SETTING_QUIZ_COUNT, value).apply()
+        _uiState.update { it.copy(quizQuestionCount = value) }
+    }
+
     fun onDeckOpened(deckId: String) {
         viewModelScope.launch {
             val deck = _uiState.value.decks.firstOrNull { it.id == deckId } ?: return@launch
@@ -161,6 +264,53 @@ class HomeViewModel @Inject constructor(
                 )
             }
         }
+
+    }
+
+    fun onDeleteDeckClicked() {
+        val deckId = _uiState.value.managedDeckId ?: return
+        viewModelScope.launch {
+            if (deckRepository.deleteDeckIfEmpty(deckId)) {
+                refreshState()
+                _uiState.update {
+                    it.copy(
+                        screen = HomeScreen.Decks,
+                        managedDeckId = null,
+                        managedDeckEntries = emptyList(),
+                        feedback = "Deck eliminado"
+                    )
+                }
+            } else {
+                _uiState.update { it.copy(feedback = "Solo se pueden eliminar decks vacíos") }
+            }
+        }
+    }
+
+    private fun buildQuizQueue(
+        candidates: List<VocabularyEntry>,
+        questionCount: Int
+    ): List<VocabularyEntry> {
+        if (candidates.isEmpty() || questionCount <= 0) return emptyList()
+
+        // Repeat shuffled rounds so a short collection can fill the configured session.
+        val queue = ArrayList<VocabularyEntry>(questionCount)
+        var previousId: String? = null
+        while (queue.size < questionCount) {
+            val round = candidates.shuffled()
+            var addedInRound = false
+            round.forEach { entry ->
+                if (queue.size < questionCount && entry.id != previousId) {
+                    queue += entry
+                    previousId = entry.id
+                    addedInRound = true
+                }
+            }
+            if (!addedInRound) {
+                queue += candidates.first()
+                previousId = candidates.first().id
+            }
+        }
+        return queue
     }
 
     fun onRemoveEntryFromDeck(entry: VocabularyEntry) {
@@ -210,7 +360,7 @@ class HomeViewModel @Inject constructor(
 
         dictionarySearchJob = viewModelScope.launch {
             ensureDictionaryImport().join()
-            val results = dictionaryVocabularyRepository.search(value, limit = 20)
+            val results = dictionaryVocabularyRepository.search(value)
             if (_uiState.value.dictionaryQuery == value) {
                 _uiState.update { it.copy(dictionaryResults = results) }
             }
@@ -244,7 +394,7 @@ class HomeViewModel @Inject constructor(
 
         kanjiSearchJob = viewModelScope.launch {
             ensureDictionaryImport().join()
-            val results = dictionaryKanjiRepository.search(value, limit = 20)
+            val results = dictionaryKanjiRepository.search(value)
             if (_uiState.value.kanjiQuery == value) {
                 _uiState.update { it.copy(kanjiResults = results) }
             }
@@ -265,7 +415,7 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             createVocabularyUseCase(
                 japanese = entry.character,
-                reading = entry.kunyomi.ifBlank { entry.onyomi },
+                reading = entry.kanjiReadings(),
                 meaningEs = entry.meaning,
                 deckIds = current.selectedDeckIds.toList(),
                 kind = "KANJI",
@@ -407,47 +557,190 @@ class HomeViewModel @Inject constructor(
         _uiState.update { it.copy(quizAnswer = value) }
     }
 
-    fun onSubmitQuizAnswer() {
-        val current = _uiState.value.quizEntry ?: return
-        val answer = _uiState.value.quizAnswer.trim()
+    fun onQuizOptionSelected(option: String) {
+        _uiState.update { it.copy(quizAnswer = option) }
+        onSubmitQuizAnswer()
+    }
 
-        val isCorrect = when (_uiState.value.quizMode) {
-            QuizMode.JAPANESE_TO_SPANISH -> answer.equals(current.meaningEs.trim(), ignoreCase = true)
-            QuizMode.SPANISH_TO_JAPANESE -> answer.equals(current.japanese.trim(), ignoreCase = false)
+    fun onSubmitQuizAnswer() {
+        val state = _uiState.value
+        val currentEntry = state.quizEntry ?: return
+        val answer = state.quizAnswer.trim()
+
+        if (!state.quizMode.isStudyMode() && answer.isBlank()) {
+            _uiState.update { it.copy(quizFeedback = "Selecciona o escribe una respuesta") }
+            return
+        }
+
+        val expectedAnswer = state.quizMode.expectedAnswer(currentEntry)
+        val isCorrect = if (state.quizMode.isStudyMode()) {
+            true
+        } else {
+            answer.equals(expectedAnswer.trim(), ignoreCase = state.quizMode.usesCaseInsensitiveComparison())
         }
 
         viewModelScope.launch {
-            reviewVocabularyUseCase(current, isCorrect)
+            reviewVocabularyUseCase(currentEntry, isCorrect)
             refreshState()
-            val nextEntry = vocabularyRepository.getDue(limit = 1).firstOrNull()
-            val expectedAnswer = when (_uiState.value.quizMode) {
-                QuizMode.JAPANESE_TO_SPANISH -> current.meaningEs
-                QuizMode.SPANISH_TO_JAPANESE -> current.japanese
-            }
+
+            val remainingEntries = state.quizEntries
+            val nextEntry = remainingEntries.firstOrNull()
+            val nextQueue = remainingEntries.drop(1)
+            val nextOptions = nextEntry?.let {
+                buildQuizOptions(
+                    mode = state.quizMode,
+                    currentEntry = it,
+                    queue = nextQueue,
+                    allEntries = _uiState.value.vocabularies
+                )
+            } ?: emptyList()
+
             _uiState.update {
                 it.copy(
                     quizEntry = nextEntry,
+                    quizEntries = nextQueue,
                     quizAnswer = "",
                     quizFeedback = if (isCorrect) "Correcto" else "Respuesta esperada: $expectedAnswer",
-                    quizCompleted = nextEntry == null
+                    quizCompleted = nextEntry == null,
+                    quizCorrectAnswers = state.quizCorrectAnswers + if (isCorrect) 1 else 0,
+                    quizIncorrectAnswers = state.quizIncorrectAnswers + if (isCorrect) 0 else 1,
+                    quizQuestionsRemaining = if (nextEntry == null) 0 else nextQueue.size + 1,
+                    quizOptions = nextOptions
                 )
             }
         }
     }
 
+    private fun buildQuizOptions(
+        mode: QuizMode,
+        currentEntry: VocabularyEntry,
+        queue: List<VocabularyEntry>,
+        allEntries: List<VocabularyEntry>
+    ): List<String> {
+        if (!mode.usesSelectionOptions()) return emptyList()
+
+        val correctAnswer = mode.expectedAnswer(currentEntry).trim()
+        if (correctAnswer.isBlank()) return emptyList()
+
+        val normalizedCorrect = correctAnswer.normalizeQuizText()
+        val currentConflictKey = mode.answerConflictKey(currentEntry)
+
+        /*
+         * Keep the source entry paired with each option. For Spanish-to-Japanese
+         * quizzes, two different Japanese forms can share one valid meaning.
+         */
+        val distractors = (queue + allEntries.filter { it.kind == mode.kindFilter() })
+            .asSequence()
+            .filter { it.id != currentEntry.id }
+            .map { entry -> entry to mode.expectedAnswer(entry).trim() }
+            .filter { (_, answer) -> answer.isNotBlank() }
+            .distinctBy {
+                it.second.normalizeQuizText()
+            }
+            .filter { (entry, candidate) ->
+                candidate.normalizeQuizText() != normalizedCorrect &&
+                    mode.answerConflictKey(entry) != currentConflictKey
+            }
+            .map { (_, answer) -> answer }
+            .shuffled()
+            .take(3)
+            .toList()
+
+        return (listOf(correctAnswer) + distractors).shuffled()
+    }
+
+    private fun QuizMode.kindFilter(): String = when (this) {
+        QuizMode.KANJI_STUDY,
+        QuizMode.KANJI_TO_SPANISH_SELECTION,
+        QuizMode.SPANISH_TO_KANJI_SELECTION,
+        QuizMode.KANJI_TO_READINGS_SELECTION,
+        QuizMode.READINGS_TO_KANJI_SELECTION -> "KANJI"
+        else -> "VOCABULARY"
+    }
+
+    private fun QuizMode.expectedAnswer(entry: VocabularyEntry): String = when (this) {
+        QuizMode.JAPANESE_TO_SPANISH,
+        QuizMode.JAPANESE_TO_SPANISH_SELECTION,
+        QuizMode.JAPANESE_TO_SPANISH_WRITTEN,
+        QuizMode.KANJI_TO_SPANISH_SELECTION -> entry.meaningEs
+
+        QuizMode.KANJI_TO_READINGS_SELECTION -> entry.reading
+
+        QuizMode.SPANISH_TO_JAPANESE,
+        QuizMode.SPANISH_TO_JAPANESE_SELECTION,
+        QuizMode.SPANISH_TO_JAPANESE_WRITTEN,
+        QuizMode.SPANISH_TO_KANJI_SELECTION,
+        QuizMode.READINGS_TO_KANJI_SELECTION -> entry.japanese
+
+        QuizMode.STUDY,
+        QuizMode.KANJI_STUDY -> entry.meaningEs
+    }
+
+    private fun QuizMode.usesSelectionOptions(): Boolean = when (this) {
+        QuizMode.JAPANESE_TO_SPANISH_SELECTION,
+        QuizMode.SPANISH_TO_JAPANESE_SELECTION,
+        QuizMode.KANJI_TO_SPANISH_SELECTION,
+        QuizMode.SPANISH_TO_KANJI_SELECTION,
+        QuizMode.KANJI_TO_READINGS_SELECTION,
+        QuizMode.READINGS_TO_KANJI_SELECTION -> true
+
+        else -> false
+    }
+
+    private fun QuizMode.usesCaseInsensitiveComparison(): Boolean = when (this) {
+        QuizMode.JAPANESE_TO_SPANISH,
+        QuizMode.JAPANESE_TO_SPANISH_SELECTION,
+        QuizMode.JAPANESE_TO_SPANISH_WRITTEN,
+        QuizMode.KANJI_TO_SPANISH_SELECTION,
+        QuizMode.KANJI_TO_READINGS_SELECTION -> true
+
+        else -> false
+    }
+
+    private fun QuizMode.answerConflictKey(entry: VocabularyEntry): String = when (this) {
+        QuizMode.SPANISH_TO_JAPANESE,
+        QuizMode.SPANISH_TO_JAPANESE_SELECTION,
+        QuizMode.SPANISH_TO_JAPANESE_WRITTEN,
+        QuizMode.SPANISH_TO_KANJI_SELECTION -> entry.meaningEs.normalizeQuizText()
+
+        QuizMode.READINGS_TO_KANJI_SELECTION -> entry.reading.normalizeQuizText()
+        else -> expectedAnswer(entry).normalizeQuizText()
+    }
+
+    private fun String.normalizeQuizText(): String =
+        trim().lowercase().replace(Regex("[\\p{Punct}\\s]+"), " ")
+
+    private fun QuizMode.isStudyMode(): Boolean = this == QuizMode.STUDY || this == QuizMode.KANJI_STUDY
+
+    private fun DictionaryKanji.kanjiReadings(): String = buildString {
+        if (onyomi.isNotBlank()) append("On: $onyomi")
+        if (onyomi.isNotBlank() && kunyomi.isNotBlank()) append("\n")
+        if (kunyomi.isNotBlank()) append("Kun: $kunyomi")
+    }
+
     private suspend fun refreshState() {
         val storedDecks = deckRepository.listDecks()
-        val decks = if (storedDecks.none { it.name == "Vocabulario" }) {
-            storedDecks + createDeckUseCase("Vocabulario")
+        val decksWithVocabulary = if (storedDecks.none { it.name == DEFAULT_VOCABULARY_DECK }) {
+            storedDecks + createDeckUseCase(DEFAULT_VOCABULARY_DECK)
         } else {
             storedDecks
         }
-        val defaultDeck = decks.firstOrNull { it.name == "Vocabulario" }
+        val decks = if (decksWithVocabulary.none { it.name == DEFAULT_KANJI_DECK }) {
+            decksWithVocabulary + createDeckUseCase(DEFAULT_KANJI_DECK)
+        } else {
+            decksWithVocabulary
+        }
+        val defaultDeck = decks.firstOrNull { it.name == DEFAULT_VOCABULARY_DECK }
         val vocabulary = vocabularyRepository.getAll()
         _uiState.update { state ->
             state.copy(
                 decks = decks,
                 vocabularies = vocabulary,
+                showRomaji = preferences.getBoolean(SETTING_SHOW_ROMAJI, false),
+                showKanaInVocabulary = preferences.getBoolean(SETTING_SHOW_KANA, true),
+                showKanjiMeaning = preferences.getBoolean(SETTING_SHOW_KANJI_MEANING, true),
+                quizQuestionCount = preferences.getInt(SETTING_QUIZ_COUNT, 10)
+                    .coerceIn(QUIZ_QUESTION_COUNTS.first(), QUIZ_QUESTION_COUNTS.last()),
                 selectedDeckIds = if (state.selectedDeckIds.isEmpty()) {
                     setOfNotNull(defaultDeck?.id)
                 } else {
@@ -455,6 +748,16 @@ class HomeViewModel @Inject constructor(
                 }
             )
         }
+    }
+
+    private companion object {
+        const val DEFAULT_VOCABULARY_DECK = "Vocabulario"
+        const val DEFAULT_KANJI_DECK = "Kanji"
+        const val SETTING_SHOW_ROMAJI = "show_romaji"
+        const val SETTING_SHOW_KANA = "show_kana"
+        const val SETTING_SHOW_KANJI_MEANING = "show_kanji_meaning"
+        const val SETTING_QUIZ_COUNT = "quiz_question_count"
+        val QUIZ_QUESTION_COUNTS = (5..100 step 5).toList()
     }
 
     private fun ensureDictionaryImport(): Job {
@@ -482,13 +785,6 @@ class HomeViewModel @Inject constructor(
     }
 }
 
-sealed interface HomeAction {
-    data object AddVocabulary : HomeAction
-    data object PracticeQuiz : HomeAction
-    data object Search : HomeAction
-    data object ViewStreak : HomeAction
-}
-
 sealed interface HomeScreen {
     data object Home : HomeScreen
     data object AddVocabulary : HomeScreen
@@ -501,8 +797,12 @@ sealed interface HomeScreen {
     data object Statistics : HomeScreen
     data object Decks : HomeScreen
     data object DeckDetail : HomeScreen
+    data object Settings : HomeScreen
 }
 
+/**
+ * Immutable state rendered by the home flow and its child screens.
+ */
 data class HomeUiState(
     val screen: HomeScreen = HomeScreen.Home,
     val studyArea: StudyArea = StudyArea.KANJI,
@@ -521,12 +821,20 @@ data class HomeUiState(
     val quizAnswer: String = "",
     val quizFeedback: String? = null,
     val quizCompleted: Boolean = false,
+    val quizCorrectAnswers: Int = 0,
+    val quizIncorrectAnswers: Int = 0,
+    val quizEntries: List<VocabularyEntry> = emptyList(),
+    val quizQuestionsRemaining: Int = 0,
+    val quizOptions: List<String> = emptyList(),
+    val showRomaji: Boolean = false,
+    val showKanaInVocabulary: Boolean = true,
+    val showKanjiMeaning: Boolean = true,
+    val quizQuestionCount: Int = 10,
     val searchQuery: String = "",
     val searchResults: List<VocabularyEntry> = emptyList(),
     val dictionaryQuery: String = "",
     val dictionaryResults: List<DictionaryVocabulary> = emptyList(),
-    val selectedDictionaryVocabulary: DictionaryVocabulary? = null
-    ,
+    val selectedDictionaryVocabulary: DictionaryVocabulary? = null,
     val kanjiQuery: String = "",
     val kanjiResults: List<DictionaryKanji> = emptyList(),
     val selectedDictionaryKanji: DictionaryKanji? = null

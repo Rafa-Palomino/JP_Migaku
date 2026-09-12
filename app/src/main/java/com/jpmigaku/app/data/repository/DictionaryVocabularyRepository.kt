@@ -6,14 +6,14 @@ import com.jpmigaku.app.domain.model.DictionaryVocabulary
 import javax.inject.Inject
 
 interface DictionaryVocabularyRepository {
-    suspend fun search(query: String, limit: Int = 20): List<DictionaryVocabulary>
+    suspend fun search(query: String): List<DictionaryVocabulary>
 }
 
 class RoomDictionaryVocabularyRepository @Inject constructor(
     private val dao: DictionaryVocabularyDao
 ) : DictionaryVocabularyRepository {
-    override suspend fun search(query: String, limit: Int): List<DictionaryVocabulary> =
-        dao.search(query.trim(), limit).map { it.toDomain() }
+    override suspend fun search(query: String): List<DictionaryVocabulary> =
+        dao.search(query.trim()).map { it.toDomain() }
 
     private fun DictionaryVocabularyEntity.toDomain(): DictionaryVocabulary {
         val spanish = spanishGlosses.split(LIST_SEPARATOR).firstOrNull(String::isNotBlank)

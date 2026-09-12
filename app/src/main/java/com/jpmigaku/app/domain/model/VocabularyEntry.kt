@@ -5,6 +5,8 @@ data class VocabularyEntry(
     val japanese: String,
     val reading: String,
     val meaningEs: String,
+    val kind: String = "VOCABULARY",
+    val romaji: String = "",
     val deckId: String? = null,
     val createdAt: Long,
     val lastReviewed: Long? = null,
