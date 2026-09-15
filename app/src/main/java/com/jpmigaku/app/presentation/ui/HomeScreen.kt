@@ -154,7 +154,7 @@ private fun HomeContent(uiState: com.jpmigaku.app.presentation.viewmodel.HomeUiS
     Spacer(modifier = Modifier.height(24.dp))
 
     HubLabel(
-        text = stringResource(R.string.search_button),
+        text = stringResource(R.string.quiz_mode_title),
         modifier = Modifier.fillMaxWidth(),
         textAlign = TextAlign.Start
     )
@@ -260,6 +260,14 @@ private fun AddKanjiContent(
         Column(modifier = Modifier.weight(0.22f)) {
             Text(text = stringResource(R.string.add_kanji_title), style = MaterialTheme.typography.headlineSmall)
             Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(
+                value = uiState.addJlptLevel,
+                onValueChange = viewModel::onJlptLevelChanged,
+                label = { Text(stringResource(R.string.field_jlpt_level)) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = stringResource(R.string.dictionary_search_title),
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
@@ -364,6 +372,14 @@ private fun AddVocabularyContent(uiState: com.jpmigaku.app.presentation.viewmode
     Column(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.weight(0.22f)) {
             Text(text = stringResource(R.string.add_vocab_title), style = MaterialTheme.typography.headlineSmall)
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(
+                value = uiState.addJlptLevel,
+                onValueChange = viewModel::onJlptLevelChanged,
+                label = { Text(stringResource(R.string.field_jlpt_level)) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = stringResource(R.string.dictionary_search_title),
@@ -521,6 +537,14 @@ private fun PersonalVocabularyContent(
         label = { Text(stringResource(R.string.field_meaning)) },
         modifier = Modifier.fillMaxWidth()
     )
+    Spacer(modifier = Modifier.height(8.dp))
+    OutlinedTextField(
+        value = uiState.addJlptLevel,
+        onValueChange = viewModel::onJlptLevelChanged,
+        label = { Text(stringResource(R.string.field_jlpt_level)) },
+        modifier = Modifier.fillMaxWidth(),
+        singleLine = true
+    )
     Spacer(modifier = Modifier.height(12.dp))
     DeckManagementContent(uiState, viewModel)
     Spacer(modifier = Modifier.height(16.dp))
@@ -546,7 +570,14 @@ private fun DeckManagementContent(
         HomeScreen.AddVocabulary, HomeScreen.PersonalVocabulary -> "Vocabulario"
         else -> null
     }
-    uiState.decks.filter { it.name != automaticDeckName }.forEach { deck ->
+    val allowedKind = when (uiState.screen) {
+        HomeScreen.AddKanji -> "KANJI"
+        HomeScreen.AddVocabulary, HomeScreen.PersonalVocabulary -> "VOCABULARY"
+        else -> null
+    }
+    uiState.decks
+        .filter { deck -> deck.name != automaticDeckName && (allowedKind == null || deck.kind == allowedKind) }
+        .forEach { deck ->
         val selected = deck.id in uiState.selectedDeckIds
         Spacer(modifier = Modifier.height(4.dp))
         RedButton(onClick = { viewModel.onDeckSelected(deck.id) }) {
@@ -750,6 +781,8 @@ private fun QuizModeContent(uiState: com.jpmigaku.app.presentation.viewmodel.Hom
             style = MaterialTheme.typography.headlineSmall
         )
         Spacer(modifier = Modifier.height(8.dp))
+        QuizDeckSelector(uiState, viewModel)
+        Spacer(modifier = Modifier.height(12.dp))
         Text(
             text = "Preguntas por sesión: ${uiState.quizQuestionCount}",
             color = Color.Black,
@@ -786,6 +819,46 @@ private fun QuizModeContent(uiState: com.jpmigaku.app.presentation.viewmodel.Hom
         uiState.feedback?.let { Text(it, color = Color.Black) }
         RedButton(onClick = viewModel::onBackClicked) {
             Text(stringResource(R.string.back_button))
+        }
+    }
+
+}
+
+@Composable
+private fun QuizDeckSelector(
+    uiState: com.jpmigaku.app.presentation.viewmodel.HomeUiState,
+    viewModel: HomeViewModel
+) {
+    val allowedKind = when (uiState.studyArea) {
+        StudyArea.KANJI -> "KANJI"
+        StudyArea.VOCABULARY -> "VOCABULARY"
+    }
+    val decks = uiState.decks.filter { it.kind == allowedKind }
+    val selectedDeck = decks.firstOrNull { it.id == uiState.selectedQuizDeckId }
+    var expanded by remember { mutableStateOf(false) }
+
+    Text(
+        text = stringResource(R.string.quiz_deck_selector_title),
+        color = Color.Black,
+        style = MaterialTheme.typography.labelLarge
+    )
+    Box {
+        RedButton(onClick = { expanded = true }, enabled = decks.isNotEmpty()) {
+            Text(selectedDeck?.name ?: stringResource(R.string.quiz_deck_select_hint))
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            decks.forEach { deck ->
+                DropdownMenuItem(
+                    text = { Text(deck.name) },
+                    onClick = {
+                        viewModel.onQuizDeckSelected(deck.id)
+                        expanded = false
+                    }
+                )
+            }
         }
     }
 }

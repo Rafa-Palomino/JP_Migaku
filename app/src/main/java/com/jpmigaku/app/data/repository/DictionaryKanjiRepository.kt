@@ -23,7 +23,8 @@ class RoomDictionaryKanjiRepository @Inject constructor(
             onyomi = onyomi,
             kunyomi = kunyomi,
             meaning = spanish ?: english.orEmpty(),
-            isEnglishFallback = spanish == null && english != null
+            isEnglishFallback = spanish == null && english != null,
+            jlptLevel = jlptLevel.orEmpty()
         )
     }
 

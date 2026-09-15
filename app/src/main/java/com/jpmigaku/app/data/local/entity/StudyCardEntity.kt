@@ -15,6 +15,7 @@ data class StudyCardEntity(
     val displayMeaning: String,
     val createdAt: Long,
     val displayRomaji: String = "",
+    val jlptLevel: String = "",
     val sourceSnapshot: String? = null,
     val updatedAt: Long = createdAt,
     val suspended: Boolean = false

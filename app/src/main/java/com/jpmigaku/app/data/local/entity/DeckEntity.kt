@@ -7,5 +7,6 @@ import androidx.room.PrimaryKey
 data class DeckEntity(
     @PrimaryKey val id: String,
     val name: String,
-    val createdAt: Long
+    val createdAt: Long,
+    val kind: String = "VOCABULARY"
 )

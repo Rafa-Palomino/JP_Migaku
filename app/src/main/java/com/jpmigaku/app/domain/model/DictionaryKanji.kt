@@ -5,5 +5,6 @@ data class DictionaryKanji(
     val onyomi: String,
     val kunyomi: String,
     val meaning: String,
-    val isEnglishFallback: Boolean
+    val isEnglishFallback: Boolean,
+    val jlptLevel: String = ""
 )

@@ -18,6 +18,7 @@ class CreateVocabularyUseCase @Inject constructor(
         sourceKey: String? = null,
         sourceVersion: String = "1",
         romaji: String = "",
+        jlptLevel: String = "",
         sourceSnapshot: String? = null,
         deckIds: List<String> = emptyList()
     ): VocabularyEntry {
@@ -35,6 +36,7 @@ class CreateVocabularyUseCase @Inject constructor(
             meaningEs = normalizedMeaning,
             kind = kind,
             romaji = romaji,
+            jlptLevel = jlptLevel,
             createdAt = System.currentTimeMillis(),
             deckId = deckId
         )
@@ -50,6 +52,7 @@ class CreateVocabularyUseCase @Inject constructor(
             deckId = deckId,
             deckIds = deckIds,
             romaji = romaji,
+            jlptLevel = jlptLevel,
             sourceSnapshot = sourceSnapshot
         )
     }

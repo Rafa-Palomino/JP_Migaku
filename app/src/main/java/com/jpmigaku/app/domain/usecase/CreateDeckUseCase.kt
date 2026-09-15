@@ -8,7 +8,7 @@ import javax.inject.Inject
 class CreateDeckUseCase @Inject constructor(
     private val deckRepository: DeckRepository
 ) {
-    suspend operator fun invoke(name: String): Deck {
+    suspend operator fun invoke(name: String, kind: String = "VOCABULARY"): Deck {
         val normalizedName = name.trim()
         require(normalizedName.isNotEmpty()) { "El nombre del deck no puede estar vacío" }
 
@@ -16,7 +16,8 @@ class CreateDeckUseCase @Inject constructor(
             Deck(
                 id = UUID.randomUUID().toString(),
                 name = normalizedName,
-                createdAt = System.currentTimeMillis()
+                createdAt = System.currentTimeMillis(),
+                kind = kind
             )
         )
     }

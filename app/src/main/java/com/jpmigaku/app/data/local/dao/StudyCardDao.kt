@@ -34,10 +34,20 @@ interface StudyCardDao {
         SELECT * FROM study_cards
         WHERE suspended = 0
           AND (:kind IS NULL OR kind = :kind)
+          AND (
+            :deckId IS NULL OR EXISTS (
+                SELECT 1 FROM card_decks
+                WHERE card_decks.cardId = study_cards.id
+                  AND card_decks.deckId = :deckId
+            )
+          )
         ORDER BY createdAt ASC
         """
     )
-    suspend fun getCardsForReview(kind: String? = null): List<StudyCardEntity>
+    suspend fun getCardsForReview(
+        kind: String? = null,
+        deckId: String? = null
+    ): List<StudyCardEntity>
 
     @Query("SELECT * FROM study_cards WHERE id = :id")
     suspend fun getCard(id: String): StudyCardEntity?

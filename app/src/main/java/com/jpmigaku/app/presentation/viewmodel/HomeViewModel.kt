@@ -81,7 +81,10 @@ class HomeViewModel @Inject constructor(
                 dictionaryQuery = "",
                 dictionaryResults = emptyList(),
                 selectedDictionaryVocabulary = null,
-                selectedDeckIds = it.decks.firstOrNull { deck -> deck.name == DEFAULT_VOCABULARY_DECK }
+                addJlptLevel = "",
+                selectedDeckIds = it.decks.firstOrNull { deck ->
+                    deck.kind == VOCABULARY_KIND && deck.name == DEFAULT_VOCABULARY_DECK
+                }
                     ?.let { deck -> setOf(deck.id) }
                     ?: emptySet()
             )
@@ -90,7 +93,9 @@ class HomeViewModel @Inject constructor(
             refreshState()
             _uiState.update { state ->
                 state.copy(
-                    selectedDeckIds = state.decks.firstOrNull { it.name == DEFAULT_VOCABULARY_DECK }
+                    selectedDeckIds = state.decks.firstOrNull {
+                        it.kind == VOCABULARY_KIND && it.name == DEFAULT_VOCABULARY_DECK
+                    }
                         ?.let { setOf(it.id) }
                         ?: emptySet()
                 )
@@ -105,7 +110,10 @@ class HomeViewModel @Inject constructor(
                 it.copy(
                     screen = HomeScreen.PersonalVocabulary,
                     feedback = null,
-                    selectedDeckIds = it.decks.firstOrNull { deck -> deck.name == DEFAULT_VOCABULARY_DECK }
+                    addJlptLevel = "",
+                    selectedDeckIds = it.decks.firstOrNull { deck ->
+                        deck.kind == VOCABULARY_KIND && deck.name == DEFAULT_VOCABULARY_DECK
+                    }
                         ?.let { deck -> setOf(deck.id) }
                         ?: emptySet()
                 )
@@ -121,7 +129,10 @@ class HomeViewModel @Inject constructor(
                 kanjiQuery = "",
                 kanjiResults = emptyList(),
                 selectedDictionaryKanji = null,
-                selectedDeckIds = it.decks.firstOrNull { deck -> deck.name == DEFAULT_KANJI_DECK }
+                addJlptLevel = "",
+                selectedDeckIds = it.decks.firstOrNull { deck ->
+                    deck.kind == KANJI_KIND && deck.name == DEFAULT_KANJI_DECK
+                }
                     ?.let { deck -> setOf(deck.id) }
                     ?: emptySet()
             )
@@ -130,7 +141,9 @@ class HomeViewModel @Inject constructor(
             refreshState()
             _uiState.update { state ->
                     state.copy(
-                        selectedDeckIds = state.decks.firstOrNull { it.name == DEFAULT_KANJI_DECK }
+                        selectedDeckIds = state.decks.firstOrNull {
+                            it.kind == KANJI_KIND && it.name == DEFAULT_KANJI_DECK
+                        }
                             ?.let { setOf(it.id) }
                             ?: emptySet()
                     )
@@ -139,9 +152,26 @@ class HomeViewModel @Inject constructor(
     }
 
     fun onQuizClicked(area: StudyArea) {
-        _uiState.update { it.copy(screen = HomeScreen.QuizMode, studyArea = area, feedback = null) }
+        _uiState.update {
+            it.copy(
+                screen = HomeScreen.QuizMode,
+                studyArea = area,
+                selectedQuizDeckId = it.decks.firstOrNull { deck ->
+                    deck.kind == area.deckKind()
+                }?.id,
+                feedback = null
+            )
+        }
         viewModelScope.launch {
             refreshState()
+            _uiState.update { state ->
+                state.copy(
+                    selectedQuizDeckId = state.selectedQuizDeckId
+                        ?: state.decks.firstOrNull { deck ->
+                            deck.kind == area.deckKind()
+                        }?.id
+                )
+            }
         }
     }
 
@@ -163,11 +193,15 @@ class HomeViewModel @Inject constructor(
             val currentState = _uiState.value
             val dueEntries = vocabularyRepository.getDue(
                 limit = currentState.vocabularies.size.coerceAtLeast(currentState.quizQuestionCount),
-                kind = mode.kindFilter()
+                kind = mode.kindFilter(),
+                deckId = currentState.selectedQuizDeckId
             )
-            val candidateEntries = dueEntries + currentState.vocabularies
+            val deckEntries = currentState.selectedQuizDeckId?.let {
+                vocabularyRepository.getByDeck(it)
+            }.orEmpty().filter { it.kind == mode.kindFilter() }
+            val candidateEntries = dueEntries + deckEntries
                 .filter { entry ->
-                    entry.kind == mode.kindFilter() && dueEntries.none { dueEntry -> dueEntry.id == entry.id }
+                    dueEntries.none { dueEntry -> dueEntry.id == entry.id }
                 }
             val quizQueue = buildQuizQueue(candidateEntries, currentState.quizQuestionCount)
             val nextEntry = quizQueue.firstOrNull()
@@ -176,7 +210,7 @@ class HomeViewModel @Inject constructor(
                     mode = mode,
                     currentEntry = it,
                     queue = quizQueue.drop(1),
-                    allEntries = currentState.vocabularies
+                    allEntries = deckEntries
                 )
             } ?: emptyList()
 
@@ -378,7 +412,12 @@ class HomeViewModel @Inject constructor(
     }
 
     fun onDictionaryVocabularySelected(entry: DictionaryVocabulary) {
-        _uiState.update { it.copy(selectedDictionaryVocabulary = entry) }
+        _uiState.update {
+            it.copy(
+                selectedDictionaryVocabulary = entry,
+                addJlptLevel = entry.jlptLevel
+            )
+        }
     }
 
     fun onKanjiQueryChanged(value: String) {
@@ -402,7 +441,12 @@ class HomeViewModel @Inject constructor(
     }
 
     fun onDictionaryKanjiSelected(entry: DictionaryKanji) {
-        _uiState.update { it.copy(selectedDictionaryKanji = entry) }
+        _uiState.update {
+            it.copy(
+                selectedDictionaryKanji = entry,
+                addJlptLevel = entry.jlptLevel
+            )
+        }
     }
 
     fun onSelectedDictionaryKanjiDismissed() {
@@ -417,11 +461,12 @@ class HomeViewModel @Inject constructor(
                 japanese = entry.character,
                 reading = entry.kanjiReadings(),
                 meaningEs = entry.meaning,
-                deckIds = current.selectedDeckIds.toList(),
+                deckIds = compatibleDeckIds(current, KANJI_KIND),
                 kind = "KANJI",
                 sourceProvider = "kanjidic2",
                 sourceKey = entry.character,
                 sourceVersion = "3.6.2",
+                jlptLevel = current.addJlptLevel,
                 sourceSnapshot = "${entry.character}|${entry.onyomi}|${entry.kunyomi}|${entry.meaning}"
             )
             refreshState()
@@ -430,6 +475,7 @@ class HomeViewModel @Inject constructor(
                     selectedDictionaryKanji = null,
                     kanjiQuery = "",
                     kanjiResults = emptyList(),
+                    addJlptLevel = "",
                     feedback = "Kanji añadido: ${entry.character}"
                 )
             }
@@ -448,12 +494,13 @@ class HomeViewModel @Inject constructor(
                 japanese = entry.japanese,
                 reading = entry.reading,
                 meaningEs = entry.meaning,
-                deckIds = current.selectedDeckIds.toList(),
+                deckIds = compatibleDeckIds(current, VOCABULARY_KIND),
                 kind = "VOCABULARY",
                 sourceProvider = "jmdict",
                 sourceKey = entry.sequenceId,
                 sourceVersion = "3.6.2",
                 romaji = entry.romaji,
+                jlptLevel = current.addJlptLevel,
                 sourceSnapshot = "${entry.japanese}|${entry.reading}|${entry.romaji}|${entry.meaning}"
             )
             refreshState()
@@ -462,6 +509,7 @@ class HomeViewModel @Inject constructor(
                     selectedDictionaryVocabulary = null,
                     dictionaryQuery = "",
                     dictionaryResults = emptyList(),
+                    addJlptLevel = "",
                     feedback = "Añadido: ${entry.japanese}"
                 )
             }
@@ -476,6 +524,10 @@ class HomeViewModel @Inject constructor(
         _uiState.update { it.copy(addMeaning = value) }
     }
 
+    fun onJlptLevelChanged(value: String) {
+        _uiState.update { it.copy(addJlptLevel = value.trim().uppercase()) }
+    }
+
     fun onDeckSelected(deckId: String?) {
         if (deckId == null) return
         _uiState.update { state ->
@@ -483,6 +535,10 @@ class HomeViewModel @Inject constructor(
             if (!selected.add(deckId)) selected.remove(deckId)
             state.copy(selectedDeckIds = selected)
         }
+    }
+
+    fun onQuizDeckSelected(deckId: String?) {
+        _uiState.update { it.copy(selectedQuizDeckId = deckId) }
     }
 
     fun onDeckNameChanged(value: String) {
@@ -497,7 +553,11 @@ class HomeViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            val created = createDeckUseCase(name)
+            val kind = when (_uiState.value.screen) {
+                HomeScreen.AddKanji -> KANJI_KIND
+                else -> VOCABULARY_KIND
+            }
+            val created = createDeckUseCase(name, kind)
             refreshState()
             _uiState.update {
                 it.copy(
@@ -537,7 +597,8 @@ class HomeViewModel @Inject constructor(
                 japanese = current.addJapanese,
                 reading = current.addReading,
                 meaningEs = current.addMeaning,
-                deckIds = current.selectedDeckIds.toList()
+                jlptLevel = current.addJlptLevel,
+                deckIds = compatibleDeckIds(current, VOCABULARY_KIND)
             )
 
             refreshState()
@@ -547,7 +608,8 @@ class HomeViewModel @Inject constructor(
                     feedback = "Guardado: ${saved.japanese}",
                     addJapanese = "",
                     addReading = "",
-                    addMeaning = ""
+                    addMeaning = "",
+                    addJlptLevel = ""
                 )
             }
         }
@@ -591,7 +653,9 @@ class HomeViewModel @Inject constructor(
                     mode = state.quizMode,
                     currentEntry = it,
                     queue = nextQueue,
-                    allEntries = _uiState.value.vocabularies
+                    allEntries = state.selectedQuizDeckId?.let {
+                        vocabularyRepository.getByDeck(it)
+                    }.orEmpty().filter { it.kind == state.quizMode.kindFilter() }
                 )
             } ?: emptyList()
 
@@ -712,6 +776,16 @@ class HomeViewModel @Inject constructor(
 
     private fun QuizMode.isStudyMode(): Boolean = this == QuizMode.STUDY || this == QuizMode.KANJI_STUDY
 
+    private fun StudyArea.deckKind(): String = when (this) {
+        StudyArea.KANJI -> KANJI_KIND
+        StudyArea.VOCABULARY -> VOCABULARY_KIND
+    }
+
+    private fun compatibleDeckIds(state: HomeUiState, kind: String): List<String> =
+        state.selectedDeckIds.filter { deckId ->
+            state.decks.any { deck -> deck.id == deckId && deck.kind == kind }
+        }
+
     private fun DictionaryKanji.kanjiReadings(): String = buildString {
         if (onyomi.isNotBlank()) append("On: $onyomi")
         if (onyomi.isNotBlank() && kunyomi.isNotBlank()) append("\n")
@@ -720,17 +794,23 @@ class HomeViewModel @Inject constructor(
 
     private suspend fun refreshState() {
         val storedDecks = deckRepository.listDecks()
-        val decksWithVocabulary = if (storedDecks.none { it.name == DEFAULT_VOCABULARY_DECK }) {
-            storedDecks + createDeckUseCase(DEFAULT_VOCABULARY_DECK)
+        val decksWithVocabulary = if (storedDecks.none {
+                it.name == DEFAULT_VOCABULARY_DECK && it.kind == VOCABULARY_KIND
+            }) {
+            storedDecks + createDeckUseCase(DEFAULT_VOCABULARY_DECK, VOCABULARY_KIND)
         } else {
             storedDecks
         }
-        val decks = if (decksWithVocabulary.none { it.name == DEFAULT_KANJI_DECK }) {
-            decksWithVocabulary + createDeckUseCase(DEFAULT_KANJI_DECK)
+        val decks = if (decksWithVocabulary.none {
+                it.name == DEFAULT_KANJI_DECK && it.kind == KANJI_KIND
+            }) {
+            decksWithVocabulary + createDeckUseCase(DEFAULT_KANJI_DECK, KANJI_KIND)
         } else {
             decksWithVocabulary
         }
-        val defaultDeck = decks.firstOrNull { it.name == DEFAULT_VOCABULARY_DECK }
+        val defaultDeck = decks.firstOrNull {
+            it.name == DEFAULT_VOCABULARY_DECK && it.kind == VOCABULARY_KIND
+        }
         val vocabulary = vocabularyRepository.getAll()
         _uiState.update { state ->
             state.copy(
@@ -745,6 +825,11 @@ class HomeViewModel @Inject constructor(
                     setOfNotNull(defaultDeck?.id)
                 } else {
                     state.selectedDeckIds.intersect(decks.map { it.id }.toSet())
+                },
+                selectedQuizDeckId = state.selectedQuizDeckId?.takeIf { id ->
+                    decks.any { deck ->
+                        deck.id == id && deck.kind == state.studyArea.deckKind()
+                    }
                 }
             )
         }
@@ -753,6 +838,8 @@ class HomeViewModel @Inject constructor(
     private companion object {
         const val DEFAULT_VOCABULARY_DECK = "Vocabulario"
         const val DEFAULT_KANJI_DECK = "Kanji"
+        const val VOCABULARY_KIND = "VOCABULARY"
+        const val KANJI_KIND = "KANJI"
         const val SETTING_SHOW_ROMAJI = "show_romaji"
         const val SETTING_SHOW_KANA = "show_kana"
         const val SETTING_SHOW_KANJI_MEANING = "show_kanji_meaning"
@@ -810,8 +897,10 @@ data class HomeUiState(
     val addJapanese: String = "",
     val addReading: String = "",
     val addMeaning: String = "",
+    val addJlptLevel: String = "",
     val newDeckName: String = "",
     val selectedDeckIds: Set<String> = emptySet(),
+    val selectedQuizDeckId: String? = null,
     val managedDeckId: String? = null,
     val managedDeckEntries: List<VocabularyEntry> = emptyList(),
     val decks: List<Deck> = emptyList(),

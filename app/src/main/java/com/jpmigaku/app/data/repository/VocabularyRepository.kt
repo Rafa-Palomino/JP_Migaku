@@ -29,12 +29,17 @@ interface VocabularyRepository {
         meaning: String,
         deckId: String?,
         romaji: String = "",
+        jlptLevel: String = "",
         sourceSnapshot: String? = null,
         deckIds: List<String> = emptyList()
     ): VocabularyEntry
     suspend fun recordReview(entry: VocabularyEntry, wasCorrect: Boolean): VocabularyEntry
     suspend fun getAll(): List<VocabularyEntry>
-    suspend fun getDue(limit: Int = 10, kind: String? = null): List<VocabularyEntry>
+    suspend fun getDue(
+        limit: Int = 10,
+        kind: String? = null,
+        deckId: String? = null
+    ): List<VocabularyEntry>
     suspend fun update(entry: VocabularyEntry)
     suspend fun search(query: String, limit: Int = 50): List<VocabularyEntry>
     suspend fun getByDeck(deckId: String): List<VocabularyEntry>
@@ -52,7 +57,19 @@ class RoomVocabularyRepository @Inject constructor(private val database: JPMigak
     private val decks = database.deckDao()
 
     override suspend fun save(entry: VocabularyEntry) {
-        saveStudyCard("VOCABULARY", "manual", entry.id, "1", entry.japanese, entry.reading, entry.meaningEs, entry.deckId, existing = entry)
+        saveStudyCard(
+            kind = entry.kind,
+            provider = "manual",
+            key = entry.id,
+            version = "1",
+            japanese = entry.japanese,
+            reading = entry.reading,
+            meaning = entry.meaningEs,
+            deckId = entry.deckId,
+            romaji = entry.romaji,
+            jlptLevel = entry.jlptLevel,
+            existing = entry
+        )
     }
 
     override suspend fun saveStudyCard(
@@ -65,12 +82,41 @@ class RoomVocabularyRepository @Inject constructor(private val database: JPMigak
         meaning: String,
         deckId: String?,
         romaji: String,
+        jlptLevel: String,
         sourceSnapshot: String?,
         deckIds: List<String>
     ): VocabularyEntry =
-        saveStudyCard(kind, sourceProvider, sourceKey, sourceVersion, japanese, reading, meaning, deckId, romaji, sourceSnapshot, deckIds, null)
+        saveStudyCard(
+            kind,
+            sourceProvider,
+            sourceKey,
+            sourceVersion,
+            japanese,
+            reading,
+            meaning,
+            deckId,
+            romaji,
+            jlptLevel,
+            sourceSnapshot,
+            deckIds,
+            null
+        )
 
-    private suspend fun saveStudyCard(kind: String, provider: String, key: String, version: String, japanese: String, reading: String, meaning: String, deckId: String?, romaji: String = "", sourceSnapshot: String? = null, deckIds: List<String> = emptyList(), existing: VocabularyEntry? = null): VocabularyEntry {
+    private suspend fun saveStudyCard(
+        kind: String,
+        provider: String,
+        key: String,
+        version: String,
+        japanese: String,
+        reading: String,
+        meaning: String,
+        deckId: String?,
+        romaji: String = "",
+        jlptLevel: String = "",
+        sourceSnapshot: String? = null,
+        deckIds: List<String> = emptyList(),
+        existing: VocabularyEntry? = null
+    ): VocabularyEntry {
         val card = cards.findByIdentity(kind, provider, key)
         val id = card?.id ?: existing?.id ?: UUID.randomUUID().toString()
         val created = card?.createdAt ?: existing?.createdAt ?: System.currentTimeMillis()
@@ -86,6 +132,7 @@ class RoomVocabularyRepository @Inject constructor(private val database: JPMigak
                 displayReading = reading,
                 displayMeaning = meaning,
                 displayRomaji = romaji,
+                jlptLevel = jlptLevel,
                 sourceSnapshot = sourceSnapshot,
                 createdAt = created,
                 updatedAt = System.currentTimeMillis()
@@ -99,22 +146,30 @@ class RoomVocabularyRepository @Inject constructor(private val database: JPMigak
             }
         }
         return VocabularyEntry(
-            id, japanese, reading, meaning, kind, romaji, deckId, created,
-            priorReview?.lastReviewedAt,
-            priorReview?.intervalDays ?: 1,
-            priorReview?.easeFactor ?: 2.5,
-            priorReview?.attempts ?: 0
+            id = id,
+            japanese = japanese,
+            reading = reading,
+            meaningEs = meaning,
+            kind = kind,
+            romaji = romaji,
+            jlptLevel = jlptLevel,
+            deckId = deckId,
+            createdAt = created,
+            lastReviewed = priorReview?.lastReviewedAt,
+            interval = priorReview?.intervalDays ?: 1,
+            easeFactor = priorReview?.easeFactor ?: 2.5,
+            reviewCount = priorReview?.attempts ?: 0
         )
     }
 
     override suspend fun getAll(): List<VocabularyEntry> = cards.getAllCards().map { it.toEntry() }
 
-    override suspend fun getDue(limit: Int, kind: String?): List<VocabularyEntry> {
+    override suspend fun getDue(limit: Int, kind: String?, deckId: String?): List<VocabularyEntry> {
         if (limit <= 0) return emptyList()
         val now = System.currentTimeMillis()
         val reviewsByCard = cards.getReviews().associateBy { it.cardId }
 
-        return cards.getCardsForReview(kind)
+        return cards.getCardsForReview(kind, deckId)
             .mapNotNull { card ->
                 val review = reviewsByCard[card.id]
                 val dueAt = resolveDueAt(review)
@@ -198,12 +253,12 @@ class RoomVocabularyRepository @Inject constructor(private val database: JPMigak
     }
 
     override suspend fun createDeck(deck: Deck): Deck {
-        decks.insert(DeckEntity(deck.id, deck.name, deck.createdAt))
+        decks.insert(DeckEntity(deck.id, deck.name, deck.createdAt, deck.kind))
         return deck
     }
 
     override suspend fun listDecks(): List<Deck> =
-        decks.getAll().map { Deck(it.id, it.name, it.createdAt) }
+        decks.getAll().map { Deck(it.id, it.name, it.createdAt, it.kind) }
 
     override suspend fun deleteDeckIfEmpty(deckId: String): Boolean {
         return database.withTransaction {
@@ -230,6 +285,7 @@ class RoomVocabularyRepository @Inject constructor(private val database: JPMigak
             meaningEs = displayMeaning,
             kind = kind,
             romaji = displayRomaji,
+            jlptLevel = jlptLevel,
             deckId = deckId,
             createdAt = createdAt,
             lastReviewed = review?.lastReviewedAt,

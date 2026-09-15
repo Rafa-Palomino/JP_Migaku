@@ -7,6 +7,7 @@ data class VocabularyEntry(
     val meaningEs: String,
     val kind: String = "VOCABULARY",
     val romaji: String = "",
+    val jlptLevel: String = "",
     val deckId: String? = null,
     val createdAt: Long,
     val lastReviewed: Long? = null,
