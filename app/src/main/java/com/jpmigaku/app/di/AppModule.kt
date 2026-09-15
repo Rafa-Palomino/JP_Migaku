@@ -3,6 +3,7 @@ package com.jpmigaku.app.di
 import android.content.Context
 import androidx.room.Room
 import com.jpmigaku.app.data.local.DictionaryCatalogDatabase
+import com.jpmigaku.app.data.local.DatabaseMigrations
 import com.jpmigaku.app.data.local.JPMigakuDatabase
 import com.jpmigaku.app.data.repository.DeckRepository
 import com.jpmigaku.app.data.repository.DictionaryVocabularyRepository
@@ -29,14 +30,18 @@ object AppModule {
             JPMigakuDatabase::class.java,
             "jpmigaku.db"
         )
-            .fallbackToDestructiveMigration()
+            .addMigrations(DatabaseMigrations.MIGRATION_1_2)
             .build()
     }
 
     @Provides
     @Singleton
     fun provideDictionaryCatalogDatabase(@ApplicationContext context: Context): DictionaryCatalogDatabase {
-        return Room.databaseBuilder(context, DictionaryCatalogDatabase::class.java, "jpmigaku-dictionary.db").fallbackToDestructiveMigration().build()
+        return Room.databaseBuilder(
+            context,
+            DictionaryCatalogDatabase::class.java,
+            "jpmigaku-dictionary.db"
+        ).build()
     }
 
     @Provides

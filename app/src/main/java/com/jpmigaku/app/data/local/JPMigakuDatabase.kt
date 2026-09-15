@@ -11,7 +11,17 @@ import com.jpmigaku.app.data.local.entity.JlptClassificationEntity
 import com.jpmigaku.app.data.local.entity.StudyCardEntity
 import com.jpmigaku.app.data.local.entity.StudyCardReviewEntity
 
-@Database(entities = [DeckEntity::class, StudyCardEntity::class, CardDeckEntity::class, StudyCardReviewEntity::class, JlptClassificationEntity::class], version = 2, exportSchema = false)
+@Database(
+    entities = [
+        DeckEntity::class,
+        StudyCardEntity::class,
+        CardDeckEntity::class,
+        StudyCardReviewEntity::class,
+        JlptClassificationEntity::class
+    ],
+    version = 2,
+    exportSchema = true
+)
 abstract class JPMigakuDatabase : RoomDatabase() {
     abstract fun deckDao(): DeckDao
     abstract fun studyCardDao(): StudyCardDao

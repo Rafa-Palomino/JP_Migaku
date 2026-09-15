@@ -7,7 +7,11 @@ import com.jpmigaku.app.data.local.dao.DictionaryVocabularyDao
 import com.jpmigaku.app.data.local.entity.DictionaryKanjiEntity
 import com.jpmigaku.app.data.local.entity.DictionaryVocabularyEntity
 
-@Database(entities = [DictionaryVocabularyEntity::class, DictionaryKanjiEntity::class], version = 1, exportSchema = false)
+@Database(
+    entities = [DictionaryVocabularyEntity::class, DictionaryKanjiEntity::class],
+    version = 1,
+    exportSchema = true
+)
 abstract class DictionaryCatalogDatabase : RoomDatabase() {
     abstract fun dictionaryVocabularyDao(): DictionaryVocabularyDao
     abstract fun dictionaryKanjiDao(): DictionaryKanjiDao

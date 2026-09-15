@@ -1,0 +1,176 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "854dfd429738a462b2917e1b3e28925f",
+    "entities": [
+      {
+        "tableName": "dictionary_vocabulary",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`sequenceId` TEXT NOT NULL, `japanese` TEXT NOT NULL, `reading` TEXT, `romaji` TEXT NOT NULL, `spanishGlosses` TEXT NOT NULL, `englishGlosses` TEXT NOT NULL, `partsOfSpeech` TEXT NOT NULL, PRIMARY KEY(`sequenceId`))",
+        "fields": [
+          {
+            "fieldPath": "sequenceId",
+            "columnName": "sequenceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "japanese",
+            "columnName": "japanese",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "reading",
+            "columnName": "reading",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "romaji",
+            "columnName": "romaji",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spanishGlosses",
+            "columnName": "spanishGlosses",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "englishGlosses",
+            "columnName": "englishGlosses",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "partsOfSpeech",
+            "columnName": "partsOfSpeech",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "sequenceId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_dictionary_vocabulary_japanese",
+            "unique": false,
+            "columnNames": [
+              "japanese"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_dictionary_vocabulary_japanese` ON `${TABLE_NAME}` (`japanese`)"
+          },
+          {
+            "name": "index_dictionary_vocabulary_reading",
+            "unique": false,
+            "columnNames": [
+              "reading"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_dictionary_vocabulary_reading` ON `${TABLE_NAME}` (`reading`)"
+          },
+          {
+            "name": "index_dictionary_vocabulary_romaji",
+            "unique": false,
+            "columnNames": [
+              "romaji"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_dictionary_vocabulary_romaji` ON `${TABLE_NAME}` (`romaji`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "dictionary_kanji",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`character` TEXT NOT NULL, `spanishMeanings` TEXT NOT NULL, `englishMeanings` TEXT NOT NULL, `onyomi` TEXT NOT NULL, `kunyomi` TEXT NOT NULL, `jlptLevel` TEXT, PRIMARY KEY(`character`))",
+        "fields": [
+          {
+            "fieldPath": "character",
+            "columnName": "character",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spanishMeanings",
+            "columnName": "spanishMeanings",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "englishMeanings",
+            "columnName": "englishMeanings",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "onyomi",
+            "columnName": "onyomi",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "kunyomi",
+            "columnName": "kunyomi",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "jlptLevel",
+            "columnName": "jlptLevel",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "character"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_dictionary_kanji_spanishMeanings",
+            "unique": false,
+            "columnNames": [
+              "spanishMeanings"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_dictionary_kanji_spanishMeanings` ON `${TABLE_NAME}` (`spanishMeanings`)"
+          },
+          {
+            "name": "index_dictionary_kanji_englishMeanings",
+            "unique": false,
+            "columnNames": [
+              "englishMeanings"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_dictionary_kanji_englishMeanings` ON `${TABLE_NAME}` (`englishMeanings`)"
+          },
+          {
+            "name": "index_dictionary_kanji_jlptLevel",
+            "unique": false,
+            "columnNames": [
+              "jlptLevel"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_dictionary_kanji_jlptLevel` ON `${TABLE_NAME}` (`jlptLevel`)"
+          }
+        ],
+        "foreignKeys": []
+      }
+    ],
+    "views": [],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '854dfd429738a462b2917e1b3e28925f')"
+    ]
+  }
+}
