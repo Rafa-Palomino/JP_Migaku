@@ -11,7 +11,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -23,6 +25,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -44,6 +47,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -143,23 +147,32 @@ private fun HomeContent(uiState: com.jpmigaku.app.presentation.viewmodel.HomeUiS
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = stringResource(R.string.home_title),
-            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
-        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = stringResource(R.string.home_brand_kanji),
+                color = Color.Red,
+                style = MaterialTheme.typography.headlineMedium.copy(
+                    fontFamily = FontFamily.Serif,
+                    fontWeight = FontWeight.Bold
+                )
+            )
+            Text(
+                text = stringResource(R.string.home_title),
+                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
+            )
+        }
         RedButton(onClick = viewModel::onSettingsClicked) {
             Text("⚙")
         }
     }
     Spacer(modifier = Modifier.height(24.dp))
 
-    HubLabel(
-        text = stringResource(R.string.quiz_mode_title),
-        modifier = Modifier.fillMaxWidth(),
-        textAlign = TextAlign.Start
-    )
-
     Spacer(modifier = Modifier.height(16.dp))
+    StudyAreaHeader()
+    Spacer(modifier = Modifier.height(4.dp))
     StudyAreaRow(
         label = stringResource(R.string.kanji_area),
         onPrevious = viewModel::onAddKanjiClicked,
@@ -193,9 +206,39 @@ private fun HomeContent(uiState: com.jpmigaku.app.presentation.viewmodel.HomeUiS
     }
 
     Spacer(modifier = Modifier.height(24.dp))
-    Text(
-        text = uiState.feedback ?: stringResource(R.string.status_placeholder),
-    )
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        Text(stringResource(R.string.home_version_credit), fontSize = 14.sp)
+        Text(stringResource(R.string.home_copyright_credit), fontSize = 14.sp)
+        Text(stringResource(R.string.home_jmdict_credit), fontSize = 14.sp)
+        Text(stringResource(R.string.home_kanjidic_credit), fontSize = 14.sp)
+        Text(stringResource(R.string.home_jlpt_credit), fontSize = 14.sp)
+        Text(stringResource(R.string.home_software_credit), fontSize = 14.sp)
+        uiState.feedback?.let { Text(it, fontSize = 14.sp) }
+    }
+}
+
+@Composable
+private fun StudyAreaHeader() {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        HubLabel(
+            text = stringResource(R.string.selection_navigation_label),
+            modifier = Modifier.width(80.dp),
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.weight(1f))
+        HubLabel(
+            text = stringResource(R.string.quiz_navigation_label),
+            modifier = Modifier.width(80.dp),
+            textAlign = TextAlign.Center
+        )
+    }
 }
 
 @Composable
@@ -209,13 +252,23 @@ private fun StudyAreaRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        ArrowButton(symbol = "‹", onClick = onPrevious)
+        Box(
+            modifier = Modifier.width(80.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            ArrowButton(symbol = "‹", onClick = onPrevious)
+        }
         HubLabel(
             text = label,
             modifier = Modifier.weight(1f),
             textAlign = TextAlign.Center
         )
-        ArrowButton(symbol = "›", onClick = onNext)
+        Box(
+            modifier = Modifier.width(80.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            ArrowButton(symbol = "›", onClick = onNext)
+        }
     }
 }
 
@@ -238,6 +291,7 @@ private fun HubLabel(
 private fun ArrowButton(symbol: String, onClick: () -> Unit) {
     Button(
         onClick = onClick,
+        modifier = Modifier.width(64.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = Color.Red,
             contentColor = Color.White
@@ -260,12 +314,9 @@ private fun AddKanjiContent(
         Column(modifier = Modifier.weight(0.22f)) {
             Text(text = stringResource(R.string.add_kanji_title), style = MaterialTheme.typography.headlineSmall)
             Spacer(modifier = Modifier.height(8.dp))
-            OutlinedTextField(
-                value = uiState.addJlptLevel,
-                onValueChange = viewModel::onJlptLevelChanged,
-                label = { Text(stringResource(R.string.field_jlpt_level)) },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+            JlptLevelSelector(
+                selectedLevel = uiState.addJlptLevel,
+                onLevelSelected = viewModel::onJlptLevelChanged
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
@@ -277,7 +328,10 @@ private fun AddKanjiContent(
                 value = uiState.kanjiQuery,
                 onValueChange = viewModel::onKanjiQueryChanged,
                 label = { Text(stringResource(R.string.kanji_search_hint)) },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 70.dp),
+                textStyle = MaterialTheme.typography.bodyLarge.copy(color = Color.Black),
                 singleLine = true
             )
         }
@@ -373,12 +427,9 @@ private fun AddVocabularyContent(uiState: com.jpmigaku.app.presentation.viewmode
         Column(modifier = Modifier.weight(0.22f)) {
             Text(text = stringResource(R.string.add_vocab_title), style = MaterialTheme.typography.headlineSmall)
             Spacer(modifier = Modifier.height(8.dp))
-            OutlinedTextField(
-                value = uiState.addJlptLevel,
-                onValueChange = viewModel::onJlptLevelChanged,
-                label = { Text(stringResource(R.string.field_jlpt_level)) },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+            JlptLevelSelector(
+                selectedLevel = uiState.addJlptLevel,
+                onLevelSelected = viewModel::onJlptLevelChanged
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
@@ -390,7 +441,10 @@ private fun AddVocabularyContent(uiState: com.jpmigaku.app.presentation.viewmode
                 value = uiState.dictionaryQuery,
                 onValueChange = viewModel::onDictionaryQueryChanged,
                 label = { Text(stringResource(R.string.dictionary_search_hint)) },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 70.dp),
+                textStyle = MaterialTheme.typography.bodyLarge.copy(color = Color.Black),
                 singleLine = true
             )
             Spacer(modifier = Modifier.height(6.dp))
@@ -538,12 +592,9 @@ private fun PersonalVocabularyContent(
         modifier = Modifier.fillMaxWidth()
     )
     Spacer(modifier = Modifier.height(8.dp))
-    OutlinedTextField(
-        value = uiState.addJlptLevel,
-        onValueChange = viewModel::onJlptLevelChanged,
-        label = { Text(stringResource(R.string.field_jlpt_level)) },
-        modifier = Modifier.fillMaxWidth(),
-        singleLine = true
+    JlptLevelSelector(
+        selectedLevel = uiState.addJlptLevel,
+        onLevelSelected = viewModel::onJlptLevelChanged
     )
     Spacer(modifier = Modifier.height(12.dp))
     DeckManagementContent(uiState, viewModel)
@@ -557,6 +608,57 @@ private fun PersonalVocabularyContent(
         }
     }
     uiState.feedback?.let { Text(it) }
+}
+
+private val JLPT_LEVELS = listOf("", "N5", "N4", "N3", "N2", "N1")
+
+@Composable
+private fun JlptLevelSelector(
+    selectedLevel: String,
+    onLevelSelected: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val selectedLabel = selectedLevel.ifBlank {
+        stringResource(R.string.jlpt_any_level)
+    }
+
+    Box {
+        OutlinedButton(
+            onClick = { expanded = true },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("${stringResource(R.string.field_jlpt_level)}: $selectedLabel")
+                Text("⌄")
+            }
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            JLPT_LEVELS.forEach { level ->
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            level.ifBlank {
+                                stringResource(R.string.jlpt_any_level)
+                            }
+                        )
+                    },
+                    onClick = {
+                        onLevelSelected(level)
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
 }
 
 @Composable

@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">JP Migaku</string>
     <string name="home_title">JP Migaku</string>
+    <string name="home_brand_kanji">磨</string>
     <string name="add_vocab_button">Agregar vocabulario</string>
     <string name="search_button">Buscar</string>
     <string name="statistics_button">Ver Estadísticas</string>
@@ -11,7 +12,12 @@
     <string name="statistics_title">Estadísticas</string>
     <string name="statistics_vocab_count">Vocabulario guardado: %1$d</string>
     <string name="statistics_deck_count">Decks: %1$d</string>
-    <string name="status_placeholder">Fase 0: flujo básico listo para extender.</string>
+    <string name="home_version_credit">JP Migaku v.0.1 (beta)</string>
+    <string name="home_copyright_credit">Copyright (c) Rafa Palomino</string>
+    <string name="home_jmdict_credit">JMdict es propiedad de Electronic Dictionary Research and Development Group</string>
+    <string name="home_kanjidic_credit">KANJIDIC2 es propiedad de Electronic Dictionary Research and Development Group</string>
+    <string name="home_jlpt_credit">Las clasificaciones JLPT proceden de japanese-language-data, Jonathan Waller y sus fuentes colaboradoras</string>
+    <string name="home_software_credit">Android, AndroidX, Jetpack Compose, Material Components, Kotlin, Coroutines, Gradle, Android Gradle Plugin, KSP, Hilt, JUnit y Espresso son proyectos de terceros bajo sus respectivas licencias</string>
     <string name="add_vocab_title">Añadir vocabulario</string>
     <string name="dictionary_search_title">Buscar en el diccionario</string>
     <string name="dictionary_search_hint">Kanji, kana, romaji o traducción</string>
@@ -27,6 +33,7 @@
     <string name="field_reading">Lectura</string>
     <string name="field_meaning">Significado</string>
     <string name="field_jlpt_level">Nivel JLPT</string>
+    <string name="jlpt_any_level">Cualquiera</string>
     <string name="deck_selector_title">Deck activo</string>
     <string name="quiz_deck_selector_title">Deck del quiz</string>
     <string name="quiz_deck_select_hint">Selecciona un deck</string>
@@ -38,6 +45,8 @@
     <string name="entries_title">Entradas guardadas</string>
     <string name="quiz_title">Quiz de memoria</string>
     <string name="quiz_mode_title">Quiz</string>
+    <string name="selection_navigation_label">Selección</string>
+    <string name="quiz_navigation_label">Quiz</string>
     <string name="quiz_study_button">Estudio</string>
     <string name="quiz_vocabulary_title">Quizes de vocabulario</string>
     <string name="quiz_kanji_title">Quizes de kanji</string>
