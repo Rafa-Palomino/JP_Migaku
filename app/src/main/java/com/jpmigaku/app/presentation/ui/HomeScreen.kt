@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.clickable
@@ -330,7 +331,8 @@ private fun AddKanjiContent(
                 label = { Text(stringResource(R.string.kanji_search_hint)) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 70.dp),
+                    .heightIn(min = 70.dp)
+                    .offset(y = (-3).dp),
                 textStyle = MaterialTheme.typography.bodyLarge.copy(color = Color.Black),
                 singleLine = true
             )
@@ -443,7 +445,8 @@ private fun AddVocabularyContent(uiState: com.jpmigaku.app.presentation.viewmode
                 label = { Text(stringResource(R.string.dictionary_search_hint)) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 70.dp),
+                    .heightIn(min = 70.dp)
+                    .offset(y = (-3).dp),
                 textStyle = MaterialTheme.typography.bodyLarge.copy(color = Color.Black),
                 singleLine = true
             )
