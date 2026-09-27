@@ -39,4 +39,26 @@ interface DictionaryVocabularyDao {
         """
     )
     suspend fun search(query: String): List<DictionaryVocabularyEntity>
+
+    @Query(
+        """
+        SELECT * FROM dictionary_vocabulary
+        WHERE sequenceId = :sequenceId
+        LIMIT 1
+        """
+    )
+    suspend fun findBySequenceId(sequenceId: String): DictionaryVocabularyEntity?
+
+    @Query(
+        """
+        SELECT * FROM dictionary_vocabulary
+        WHERE japanese = :japanese
+          AND (:reading = '' OR reading = :reading)
+        ORDER BY sequenceId
+        """
+    )
+    suspend fun findExact(
+        japanese: String,
+        reading: String
+    ): List<DictionaryVocabularyEntity>
 }

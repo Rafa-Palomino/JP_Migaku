@@ -13,5 +13,8 @@ data class VocabularyEntry(
     val lastReviewed: Long? = null,
     val interval: Int = 1,
     val easeFactor: Double = 2.5,
-    val reviewCount: Int = 0
+    val reviewCount: Int = 0,
+    val sourceProvider: String = "manual",
+    val sourceKey: String = "",
+    val sourceVersion: String = ""
 )

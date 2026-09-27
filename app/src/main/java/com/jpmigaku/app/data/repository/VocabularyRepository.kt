@@ -158,7 +158,10 @@ class RoomVocabularyRepository @Inject constructor(private val database: JPMigak
             lastReviewed = priorReview?.lastReviewedAt,
             interval = priorReview?.intervalDays ?: 1,
             easeFactor = priorReview?.easeFactor ?: 2.5,
-            reviewCount = priorReview?.attempts ?: 0
+            reviewCount = priorReview?.attempts ?: 0,
+            sourceProvider = provider,
+            sourceKey = key,
+            sourceVersion = version
         )
     }
 
@@ -291,7 +294,10 @@ class RoomVocabularyRepository @Inject constructor(private val database: JPMigak
             lastReviewed = review?.lastReviewedAt,
             interval = review?.intervalDays ?: 1,
             easeFactor = review?.easeFactor ?: 2.5,
-            reviewCount = review?.attempts ?: 0
+            reviewCount = review?.attempts ?: 0,
+            sourceProvider = sourceProvider,
+            sourceKey = sourceKey,
+            sourceVersion = sourceVersion
         )
     }
 

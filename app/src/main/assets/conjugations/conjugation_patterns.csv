@@ -1,0 +1,15 @@
+id,word_class,conjugation_type
+verb_v1,VERB,V1
+verb_v5u,VERB,V5U
+verb_v5k,VERB,V5K
+verb_v5g,VERB,V5G
+verb_v5s,VERB,V5S
+verb_v5t,VERB,V5T
+verb_v5n,VERB,V5N
+verb_v5b,VERB,V5B
+verb_v5m,VERB,V5M
+verb_vk,VERB,VK
+verb_vs,VERB,VS
+verb_vz,VERB,VZ
+adj_i,ADJECTIVE,I
+adj_na,ADJECTIVE,NA

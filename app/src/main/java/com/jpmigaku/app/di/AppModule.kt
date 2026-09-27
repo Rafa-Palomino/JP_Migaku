@@ -12,6 +12,9 @@ import com.jpmigaku.app.data.repository.DictionaryKanjiRepository
 import com.jpmigaku.app.data.repository.RoomDictionaryKanjiRepository
 import com.jpmigaku.app.data.repository.RoomVocabularyRepository
 import com.jpmigaku.app.data.repository.VocabularyRepository
+import com.jpmigaku.app.data.repository.ConjugationRepository
+import com.jpmigaku.app.data.repository.RoomConjugationRepository
+import com.jpmigaku.app.domain.util.JapaneseInflectionEngine
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -31,6 +34,8 @@ object AppModule {
             "jpmigaku.db"
         )
             .addMigrations(DatabaseMigrations.MIGRATION_1_2)
+            .addMigrations(DatabaseMigrations.MIGRATION_2_3)
+            .addMigrations(DatabaseMigrations.MIGRATION_3_4)
             .build()
     }
 
@@ -67,4 +72,17 @@ object AppModule {
     fun provideDictionaryKanjiRepository(catalog: DictionaryCatalogDatabase): DictionaryKanjiRepository {
         return RoomDictionaryKanjiRepository(catalog.dictionaryKanjiDao())
     }
+
+    @Provides
+    @Singleton
+    fun provideInflectionEngine(): JapaneseInflectionEngine = JapaneseInflectionEngine()
+
+    @Provides
+    @Singleton
+    fun provideConjugationRepository(
+        database: JPMigakuDatabase,
+        dictionaryVocabularyRepository: DictionaryVocabularyRepository,
+        engine: JapaneseInflectionEngine
+    ): ConjugationRepository =
+        RoomConjugationRepository(database.conjugationDao(), dictionaryVocabularyRepository, engine)
 }

@@ -1,0 +1,33 @@
+pattern_id,display_name,when_to,how_to
+verb,Diccionario,Forma básica del verbo,"v1: base + る; v5u: base + う; v5k: base + く; v5g: base + ぐ; v5s: base + す; v5t: base + つ; v5n: base + ぬ; v5b: base + ぶ; v5m: base + む; vk/vs/vz: formas irregulares"
+verb,Negativa,Expresa negación,"v1: base + ない; v5u: う→わ + ない; v5k: く→か + ない; v5g: ぐ→が + ない; v5s: す→さ + ない; v5t: つ→た + ない; v5n: ぬ→な + ない; v5b: ぶ→ば + ない; v5m: む→ま + ない"
+verb,Pasado,Expresa una acción pasada,"v1: base + た; v5u: う→った; v5k: く→いた; v5g: ぐ→いだ; v5s: す→した; v5t: つ→った; v5n: ぬ→んだ; v5b: ぶ→んだ; v5m: む→んだ"
+verb,Pasado negativo,Expresa una acción que no ocurrió,Forma negativa + かった
+verb,Formal,Forma afirmativa formal,"v1: base + ます; v5u: う→い + ます; v5k: く→き + ます; v5g: ぐ→ぎ + ます; v5s: す→し + ます; v5t: つ→ち + ます; v5n: ぬ→に + ます; v5b: ぶ→び + ます; v5m: む→み + ます"
+verb,Formal negativo,Forma negativa formal,Forma formal + ません
+verb,Formal pasado,Forma pasada formal,Forma formal + ました
+verb,Formal pasado negativo,Forma pasada negativa formal,Forma formal + ませんでした
+verb,Forma ～て,Conecta acciones y expresa petición estado o estado,"v1: base + て; v5u: う→って; v5k: く→いて; v5g: ぐ→いで; v5s: す→して; v5t: つ→って; v5n: ぬ→んで; v5b: ぶ→んで; v5m: む→んで"
+verb,Forma ～て negativa,Indica hacer algo sin realizar otra acción,Forma negativa + で
+verb,Volitivo,Expresa intención o propuesta,"v1: base + よう; v5u: う→おう; v5k: く→こう; v5g: ぐ→ごう; v5s: す→そう; v5t: つ→とう; v5n: ぬ→のう; v5b: ぶ→ぼう; v5m: む→もう"
+verb,Imperativo,Expresa una orden directa,"v1: base + ろ; v5u: う→え; v5k: く→け; v5g: ぐ→げ; v5s: す→せ; v5t: つ→て; v5n: ぬ→ね; v5b: ぶ→べ; v5m: む→め"
+verb,Imperativo negativo,Prohíbe una acción,Forma diccionario + な
+verb,Potencial,Expresa capacidad o posibilidad,"v1: base + られる; v5u: う→える; v5k: く→ける; v5g: ぐ→げる; v5s: す→せる; v5t: つ→てる; v5n: ぬ→ねる; v5b: ぶ→べる; v5m: む→める"
+verb,Potencial negativa,Expresa incapacidad o imposibilidad,Forma potencial + ない
+verb,Pasiva,Expresa una acción recibida por el sujeto,"v1: base + られる; v5u: う→われる; v5k: く→かれる; v5g: ぐ→がれる; v5s: す→される; v5t: つ→たれる; v5n: ぬ→なれる; v5b: ぶ→ばれる; v5m: む→まれる"
+verb,Pasiva negativa,Expresa una acción no recibida,Forma pasiva + ない
+verb,Causativa,Expresa hacer o permitir que alguien haga algo,"v1: base + させる; v5u: う→わせる; v5k: く→かせる; v5g: ぐ→がせる; v5s: す→させる; v5t: つ→たせる; v5n: ぬ→なせる; v5b: ぶ→ばせる; v5m: む→ませる"
+verb,Causativa negativa,Expresa no hacer o no permitir que alguien haga algo,Forma causativa + ない
+verb,Causativa-pasiva,Expresa ser obligado a hacer algo,"v1: base + させられる; v5u: う→わせられる; v5k: く→かせられる; v5g: ぐ→がせられる; v5s: す→させられる; v5t: つ→たせられる; v5n: ぬ→なせられる; v5b: ぶ→ばせられる; v5m: む→ませられる"
+verb,Condicional ～ば,Expresa una condición si o cuando,"v1: る→れば; v5u: う→えば; v5k: く→けば; v5g: ぐ→げば; v5s: す→せば; v5t: つ→てば; v5n: ぬ→ねば; v5b: ぶ→べば; v5m: む→めば"
+verb,Condicional ～たら,Expresa una condición o acción posterior,Forma pasada + ら
+verb,Condicional ～なら,Expresa una condición basada en una situación o supuesto,Forma diccionario + なら
+verb,Concesiva ～ても,Expresa aunque o incluso si,Forma ～て + も
+adjective,Diccionario,Forma básica,"adjetivo い: se coloca antes del nombre; adjetivo な: adjetivo + な + nombre"
+adjective,Negativa,Expresa negación,"adjetivo い: い→くない; adjetivo な: + ではない"
+adjective,Pasado,Expresa un estado pasado,"adjetivo い: い→かった; adjetivo な: + だった"
+adjective,Pasado negativo,Expresa un estado que no era así,"adjetivo い: い→くなかった; adjetivo な: + ではなかった"
+adjective,Negativa formal,Expresa negación en lenguaje formal,"adjetivo い: い→くありません; adjetivo な: + ではありません"
+adjective,Pasado formal,Expresa un estado pasado en lenguaje formal,"adjetivo い: い→かったです; adjetivo な: + でした"
+adjective,Pasado negativo formal,Expresa un estado que no era así en lenguaje formal,"adjetivo い: い→くありませんでした; adjetivo な: + ではありませんでした"
+adjective,Forma ～て,Conecta gramaticalmente dos o más adjetivos,"adjetivo い: い→くて; adjetivo な: + で"

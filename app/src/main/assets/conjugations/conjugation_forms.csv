@@ -1,0 +1,33 @@
+id,pattern_id,form_key,display_name,verb_v1,verb_v5u,verb_v5k,verb_v5g,verb_v5s,verb_v5t,verb_v5n,verb_v5b,verb_v5m,verb_vk,verb_vs,verb_vz,adj_i,adj_na
+verb_dictionary,verb,DICTIONARY,Diccionario,る,う,く,ぐ,す,つ,ぬ,ぶ,む,る,する,ずる,,
+verb_negative,verb,NEGATIVE,Negativa,ない,わない,かない,がない,さない,たない,なない,ばない,まない,ない,しない,じない,,
+verb_past,verb,PAST,Pasado,た,った,いた,いだ,した,った,んだ,んだ,んだ,た,した,じた,,
+verb_past_negative,verb,PAST_NEGATIVE,Pasado negativo,なかった,わなかった,かなかった,がなかった,さなかった,たなかった,ななかった,ばなかった,まなかった,なかった,しなかった,じなかった,,
+verb_masu,verb,MASU,Formal,ます,います,きます,ぎます,します,ちます,にます,びます,みます,ります,します,じます,,
+verb_masen,verb,MASEN,Formal negativo,ません,いません,きません,ぎません,しません,ちません,にません,びません,みません,りません,しません,じません,,
+verb_mashita,verb,MASHITA,Formal pasado,ました,いました,きました,ぎました,しました,ちました,にました,びました,みました,りました,しました,じました,,
+verb_masen_deshita,verb,MASEN_DESHITA,Formal pasado negativo,ませんでした,いませんでした,きませんでした,ぎませんでした,しませんでした,ちませんでした,にませんでした,びませんでした,みませんでした,りませんでした,しませんでした,じませんでした,,
+verb_te,verb,TE,Forma ～て,て,って,いて,いで,して,って,んで,んで,んで,て,して,じて,,
+verb_naide,verb,NAIDE,Forma ～て negativa,ないで,わないで,かないで,がないで,さないで,たないで,なないで,ばないで,まないで,ないで,しないで,じないで,,
+verb_volitional,verb,VOLITIONAL,Volitivo,よう,おう,こう,ごう,そう,とう,のう,ぼう,もう,よう,しよう,じよう,,
+verb_imperative,verb,IMPERATIVE,Imperativo,ろ,え,け,げ,せ,て,ね,べ,め,ろ,しろ,じろ,,
+verb_imperative_negative,verb,IMPERATIVE_NEGATIVE,Imperativo negativo,るな,うな,くな,ぐな,すな,つな,ぬな,ぶな,むな,るな,するな,ずるな,,
+verb_potential,verb,POTENTIAL,Potencial,られる,える,ける,げる,せる,てる,ねる,べる,める,られる,できる,じられる,,
+verb_potential_negative,verb,POTENTIAL_NEGATIVE,Potencial negativa,られない,えない,けない,げない,せない,てない,ねない,べない,めない,られない,できない,じられない,,
+verb_passive,verb,PASSIVE,Pasiva,られる,われる,かれる,がれる,される,たれる,なれる,ばれる,まれる,られる,される,じられる,,
+verb_passive_negative,verb,PASSIVE_NEGATIVE,Pasiva negativa,られない,われない,かれない,がれない,されない,たれない,なれない,ばれない,まれない,られない,されない,じられない,,
+verb_causative,verb,CAUSATIVE,Causativa,させる,わせる,かせる,がせる,させる,たせる,なせる,ばせる,ませる,させる,させる,じさせる,,
+verb_causative_negative,verb,CAUSATIVE_NEGATIVE,Causativa negativa,させない,わせない,かせない,がせない,させない,たせない,なせない,ばせない,ませない,させない,させない,じさせない,,
+verb_causative_passive,verb,CAUSATIVE_PASSIVE,Causativa-pasiva,させられる,わせられる,かせられる,がせられる,させられる,たせられる,なせられる,ばせられる,ませられる,させられる,させられる,じさせられる,,
+verb_conditional_ba,verb,CONDITIONAL_BA,Condicional ～ば,れば,えば,けば,げば,せば,てば,ねば,べば,めば,れば,すれば,ずれば,,
+verb_conditional_tara,verb,CONDITIONAL_TARA,Condicional ～たら,たら,ったら,いたら,いだら,したら,ったら,んだら,んだら,んだら,たら,したら,じたら,,
+verb_conditional_nara,verb,CONDITIONAL_NARA,Condicional ～なら,るなら,うなら,くなら,ぐなら,すなら,つなら,ぬなら,ぶなら,むなら,るなら,するなら,ずるなら,,
+verb_concessive_temo,verb,CONCESSIVE_TEMO,Concesiva ～ても,ても,っても,いても,いでも,しても,っても,んでも,んでも,んでも,ても,しても,じても,,
+adj_dictionary,adjective,DICTIONARY,Diccionario,,,,,,,,,,,,,い,
+adj_negative,adjective,NEGATIVE,Negativa,,,,,,,,,,,,,くない,じゃない
+adj_past,adjective,PAST,Pasado,,,,,,,,,,,,,かった,だった
+adj_past_negative,adjective,PAST_NEGATIVE,Pasado negativo,,,,,,,,,,,,,くなかった,じゃなかった
+adj_negative_formal,adjective,NEGATIVE_FORMAL,Negativa formal,,,,,,,,,,,,,くありません,ではありません
+adj_past_formal,adjective,PAST_FORMAL,Pasado formal,,,,,,,,,,,,,かった,でした
+adj_past_negative_formal,adjective,PAST_NEGATIVE_FORMAL,Pasado negativo formal,,,,,,,,,,,,,くありませんでした,ではありませんでした
+adj_te,adjective,TE,Forma ～て,,,,,,,,,,,,,くて,で

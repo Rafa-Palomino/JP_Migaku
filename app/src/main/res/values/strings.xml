@@ -12,7 +12,7 @@
     <string name="statistics_title">Estadísticas</string>
     <string name="statistics_vocab_count">Vocabulario guardado: %1$d</string>
     <string name="statistics_deck_count">Decks: %1$d</string>
-    <string name="home_version_credit">JP Migaku v.0.1 (beta)</string>
+    <string name="home_version_credit">JP Migaku v.0.2 (beta)</string>
     <string name="home_copyright_credit">Copyright (c) Rafa Palomino</string>
     <string name="home_jmdict_credit">JMdict es propiedad de Electronic Dictionary Research and Development Group</string>
     <string name="home_kanjidic_credit">KANJIDIC2 es propiedad de Electronic Dictionary Research and Development Group</string>
@@ -58,6 +58,7 @@
     <string name="quiz_es_to_kanji_selection_button">Significado a JP - Selección</string>
     <string name="quiz_kanji_to_readings_selection_button">Kanji a lecturas - Selección</string>
     <string name="quiz_readings_to_kanji_selection_button">Lecturas a kanji - Selección</string>
+    <string name="quiz_find_kanji_selection_button">Encuentra el kanji - Selección</string>
     <string name="quiz_answer_hint">Escribe la respuesta</string>
     <string name="submit_button">Comprobar</string>
     <string name="quiz_completed_title">Quiz completado</string>
@@ -74,6 +75,7 @@
     <string name="search_hint">Busca por japonés o significado</string>
     <string name="kanji_area">Kanji</string>
     <string name="vocabulary_area">Vocabulario</string>
+    <string name="conjugation_area">Conjugaciones</string>
     <string name="add_kanji_title">Añadir kanji</string>
     <string name="kanji_search_hint">Kanji o significado</string>
     <string name="kanji_entry_title">Detalle de kanji</string>

@@ -22,6 +22,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.activity.compose.BackHandler
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.AlertDialog
@@ -60,7 +61,9 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import com.jpmigaku.app.domain.model.DictionaryVocabulary
 import com.jpmigaku.app.domain.model.DictionaryKanji
+import com.jpmigaku.app.domain.model.KanjiQuizQuestion
 import com.jpmigaku.app.domain.model.VocabularyEntry
+import com.jpmigaku.app.domain.model.ConjugationFormOption
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.jpmigaku.app.R
 import com.jpmigaku.app.presentation.viewmodel.HomeScreen
@@ -117,6 +120,10 @@ fun JPMigakuApp() {
 fun JPMigakuHomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsState()
 
+    BackHandler(enabled = uiState.screen != HomeScreen.Home) {
+        viewModel.onBackClicked()
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -129,6 +136,7 @@ fun JPMigakuHomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
             HomeScreen.AddVocabulary -> AddVocabularyContent(uiState, viewModel)
             HomeScreen.PersonalVocabulary -> PersonalVocabularyContent(uiState, viewModel)
             HomeScreen.AddKanji -> AddKanjiContent(uiState, viewModel)
+            HomeScreen.ConjugationSelection -> ConjugationSelectionContent(uiState, viewModel)
             HomeScreen.QuizMode -> QuizModeContent(uiState, viewModel)
             HomeScreen.List -> VocabularyListContent(uiState, viewModel)
             HomeScreen.Quiz -> QuizContent(uiState, viewModel)
@@ -184,6 +192,12 @@ private fun HomeContent(uiState: com.jpmigaku.app.presentation.viewmodel.HomeUiS
         label = stringResource(R.string.vocabulary_area),
         onPrevious = viewModel::onAddVocabularyClicked,
         onNext = { viewModel.onQuizClicked(StudyArea.VOCABULARY) }
+    )
+    Spacer(modifier = Modifier.height(8.dp))
+    StudyAreaRow(
+        label = stringResource(R.string.conjugation_area),
+        onPrevious = viewModel::onConjugationSelectionClicked,
+        onNext = { viewModel.onQuizClicked(StudyArea.CONJUGATION) }
     )
 
     Spacer(modifier = Modifier.height(24.dp))
@@ -373,8 +387,13 @@ private fun AddKanjiContent(
                 .weight(0.20f)
         ) {
             uiState.feedback?.let { Text(it) }
-            RedButton(onClick = viewModel::onBackClicked) {
-                Text(stringResource(R.string.back_button))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                RedButton(onClick = viewModel::onBackClicked) {
+                    Text(stringResource(R.string.back_button))
+                }
             }
         }
     }
@@ -497,8 +516,13 @@ private fun AddVocabularyContent(uiState: com.jpmigaku.app.presentation.viewmode
                 Text(stringResource(R.string.manual_vocab_title))
             }
             uiState.feedback?.let { Text(it) }
-            RedButton(onClick = viewModel::onBackClicked) {
-                Text(stringResource(R.string.back_button))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                RedButton(onClick = viewModel::onBackClicked) {
+                    Text(stringResource(R.string.back_button))
+                }
             }
         }
     }
@@ -764,6 +788,93 @@ private fun DeckDetailContent(
 }
 
 @Composable
+private fun ConjugationSelectionContent(
+    uiState: com.jpmigaku.app.presentation.viewmodel.HomeUiState,
+    viewModel: HomeViewModel
+) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Selección de conjugaciones", style = MaterialTheme.typography.headlineSmall)
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(0.88f)
+                .padding(12.dp)
+        ) {
+            if (uiState.conjugationForms.isEmpty()) {
+                Text("Cargando formas de conjugación...")
+            } else {
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    items(uiState.conjugationForms, key = { it.selectionKey }) { form ->
+                        val selected = form.selectionKey in uiState.selectedConjugationFormKeys
+                        RedButton(onClick = { viewModel.onConjugationFormDetails(form) }) {
+                            Text(
+                                "${form.wordClass.displayName()} - ${form.displayName}" +
+                                    if (selected) " ✓" else ""
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(0.12f),
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.End
+        ) {
+            RedButton(onClick = viewModel::onBackClicked) {
+                Text(stringResource(R.string.back_button))
+            }
+        }
+    }
+
+    uiState.selectedConjugationForm?.let { form ->
+        AlertDialog(
+            onDismissRequest = viewModel::onConjugationFormDetailsDismissed,
+            title = { Text("${form.wordClass.displayName()} - ${form.displayName}") },
+            text = {
+                Column {
+                    Text("Uso: ${form.whenTo}")
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Como se forma: ${form.howTo}")
+                }
+            },
+            confirmButton = {
+                RedButton(onClick = {
+                    viewModel.onConjugationFormSelected(form.selectionKey)
+                    viewModel.onConjugationFormDetailsDismissed()
+                }) {
+                    Text(
+                        if (form.formKey == "DICTIONARY") {
+                            "Siempre seleccionada"
+                        } else if (form.selectionKey in uiState.selectedConjugationFormKeys) {
+                            "Quitar selección"
+                        } else {
+                            "Seleccionar"
+                        }
+                    )
+                }
+            }
+        )
+    }
+}
+
+private fun String.displayName(): String = when (uppercase()) {
+    "VERB" -> "Verbo"
+    "ADJECTIVE" -> "Adjetivo"
+    else -> this
+}
+
+@Composable
 private fun SettingsContent(
     uiState: com.jpmigaku.app.presentation.viewmodel.HomeUiState,
     viewModel: HomeViewModel
@@ -886,16 +997,36 @@ private fun QuizModeContent(uiState: com.jpmigaku.app.presentation.viewmodel.Hom
             style = MaterialTheme.typography.headlineSmall
         )
         Spacer(modifier = Modifier.height(8.dp))
-        QuizDeckSelector(uiState, viewModel)
+        if (uiState.studyArea == StudyArea.CONJUGATION) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp)
+            ) {
+                Column {
+                    QuizDeckSelector(uiState, viewModel)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    QuizModeButton(viewModel, QuizMode.CONJUGATION_STUDY, "Estudio")
+                }
+            }
+        } else {
+            QuizDeckSelector(uiState, viewModel)
+        }
         Spacer(modifier = Modifier.height(12.dp))
-        Text(
-            text = "Preguntas por sesión: ${uiState.quizQuestionCount}",
-            color = Color.Black,
-            style = MaterialTheme.typography.bodyMedium
-        )
+        if (uiState.studyArea == StudyArea.CONJUGATION) {
+            uiState.conjugationDeckWarning?.let { warning ->
+                Text(
+                    text = warning,
+                    color = Color.Red,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        }
         Spacer(modifier = Modifier.height(16.dp))
 
-        if (uiState.studyArea == StudyArea.VOCABULARY) {
+        if (uiState.studyArea == StudyArea.CONJUGATION) {
+            Spacer(modifier = Modifier.height(4.dp))
+        } else if (uiState.studyArea == StudyArea.VOCABULARY) {
             Text(
                 text = stringResource(R.string.quiz_vocabulary_title),
                 color = Color.Black,
@@ -919,11 +1050,17 @@ private fun QuizModeContent(uiState: com.jpmigaku.app.presentation.viewmodel.Hom
             QuizModeButton(viewModel, com.jpmigaku.app.presentation.viewmodel.QuizMode.SPANISH_TO_KANJI_SELECTION, stringResource(R.string.quiz_es_to_kanji_selection_button))
             QuizModeButton(viewModel, com.jpmigaku.app.presentation.viewmodel.QuizMode.KANJI_TO_READINGS_SELECTION, stringResource(R.string.quiz_kanji_to_readings_selection_button))
             QuizModeButton(viewModel, com.jpmigaku.app.presentation.viewmodel.QuizMode.READINGS_TO_KANJI_SELECTION, stringResource(R.string.quiz_readings_to_kanji_selection_button))
+            QuizModeButton(viewModel, com.jpmigaku.app.presentation.viewmodel.QuizMode.FIND_KANJI_SELECTION, stringResource(R.string.quiz_find_kanji_selection_button))
         }
         Spacer(modifier = Modifier.height(16.dp))
         uiState.feedback?.let { Text(it, color = Color.Black) }
-        RedButton(onClick = viewModel::onBackClicked) {
-            Text(stringResource(R.string.back_button))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End
+        ) {
+            RedButton(onClick = viewModel::onBackClicked) {
+                Text(stringResource(R.string.back_button))
+            }
         }
     }
 
@@ -936,9 +1073,13 @@ private fun QuizDeckSelector(
 ) {
     val allowedKind = when (uiState.studyArea) {
         StudyArea.KANJI -> "KANJI"
-        StudyArea.VOCABULARY -> "VOCABULARY"
+        StudyArea.VOCABULARY, StudyArea.CONJUGATION -> "VOCABULARY"
     }
-    val decks = uiState.decks.filter { it.kind == allowedKind }
+    val decks = uiState.decks.filter { deck ->
+        deck.kind == allowedKind &&
+            (uiState.studyArea != StudyArea.CONJUGATION ||
+                deck.id in uiState.conjugationDeckIds)
+    }
     val selectedDeck = decks.firstOrNull { it.id == uiState.selectedQuizDeckId }
     var expanded by remember { mutableStateOf(false) }
 
@@ -1190,7 +1331,52 @@ private fun buildQuizCardText(
                 appendQuizReadings(entry)
                 if (uiState.showKanjiMeaning) appendQuizMeaning(entry)
             }
+
+            QuizMode.FIND_KANJI_SELECTION -> {
+                append("Encuentra el kanji:")
+                uiState.quizKanjiQuestion?.let(::appendKanjiQuizQuestion)
+            }
+
+            QuizMode.CONJUGATION_STUDY -> {
+                append("Estudia conjugación:")
+                uiState.quizConjugationQuestion?.let(::appendConjugationQuizQuestion)
+            }
         }
+    }
+}
+
+private fun AnnotatedString.Builder.appendConjugationQuizQuestion(
+    question: com.jpmigaku.app.domain.model.ConjugationQuizQuestion
+) {
+    withStyle(SpanStyle(fontSize = 28.sp, fontWeight = FontWeight.Bold)) {
+        append("\n")
+        append(question.vocabularyEntry.japanese)
+    }
+    withStyle(SpanStyle(fontSize = 22.sp)) {
+        append("\n")
+        append(question.vocabularyEntry.reading)
+        append("\n")
+        append(question.vocabularyEntry.meaningEs)
+        append("\n")
+        append("${question.formDisplayName}: ${question.conjugatedText}")
+        append("\n")
+        append("JMdict: ${question.classificationTag}")
+    }
+}
+
+private fun AnnotatedString.Builder.appendKanjiQuizQuestion(question: KanjiQuizQuestion) {
+    withStyle(
+        SpanStyle(
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Bold
+        )
+    ) {
+        append("\n")
+        append(question.maskedWord)
+    }
+    withStyle(SpanStyle(fontSize = 24.sp)) {
+        append("\n")
+        append(question.reading)
     }
 }
 
@@ -1257,9 +1443,11 @@ private fun QuizMode.usesSelectionOptions(): Boolean = when (this) {
     QuizMode.KANJI_TO_SPANISH_SELECTION,
     QuizMode.SPANISH_TO_KANJI_SELECTION,
     QuizMode.KANJI_TO_READINGS_SELECTION,
-    QuizMode.READINGS_TO_KANJI_SELECTION -> true
+    QuizMode.READINGS_TO_KANJI_SELECTION,
+    QuizMode.FIND_KANJI_SELECTION -> true
 
     else -> false
 }
 
-private fun QuizMode.isStudyMode(): Boolean = this == QuizMode.STUDY || this == QuizMode.KANJI_STUDY
+private fun QuizMode.isStudyMode(): Boolean =
+    this == QuizMode.STUDY || this == QuizMode.KANJI_STUDY || this == QuizMode.CONJUGATION_STUDY

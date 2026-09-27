@@ -7,5 +7,6 @@ data class DictionaryVocabulary(
     val romaji: String,
     val meaning: String,
     val isEnglishFallback: Boolean,
-    val jlptLevel: String = ""
+    val jlptLevel: String = "",
+    val partsOfSpeech: List<String> = emptyList()
 )
