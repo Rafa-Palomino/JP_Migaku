@@ -55,7 +55,9 @@ enum class QuizMode {
     KANJI_TO_READINGS_SELECTION,
     READINGS_TO_KANJI_SELECTION,
     FIND_KANJI_SELECTION,
-    CONJUGATION_STUDY
+    CONJUGATION_STUDY,
+    CONJUGATION_SELECTION,
+    CONJUGATION_WRITTEN
 }
 
 @HiltViewModel
@@ -265,7 +267,10 @@ class HomeViewModel @Inject constructor(
                 startKanjiQuiz(currentState)
                 return@launch
             }
-            if (mode == QuizMode.CONJUGATION_STUDY) {
+            if (mode == QuizMode.CONJUGATION_STUDY ||
+                mode == QuizMode.CONJUGATION_SELECTION ||
+                mode == QuizMode.CONJUGATION_WRITTEN
+            ) {
                 startConjugationQuiz(currentState)
                 return@launch
             }
@@ -288,7 +293,8 @@ class HomeViewModel @Inject constructor(
                     mode = mode,
                     currentEntry = it,
                     queue = quizQueue.drop(1),
-                    allEntries = deckEntries
+                    allEntries = deckEntries,
+                    answerCount = currentState.multipleChoiceAnswerCount
                 )
             } ?: emptyList()
 
@@ -322,7 +328,7 @@ class HomeViewModel @Inject constructor(
             _uiState.update {
                 it.copy(
                     screen = HomeScreen.Quiz,
-                    quizMode = QuizMode.CONJUGATION_STUDY,
+                    quizMode = state.quizMode,
                     quizEntry = next?.vocabularyEntry,
                     quizConjugationQuestion = next,
                     quizConjugationQuestions = queue.drop(1),
@@ -332,7 +338,13 @@ class HomeViewModel @Inject constructor(
                     quizCorrectAnswers = 0,
                     quizIncorrectAnswers = 0,
                     quizQuestionsRemaining = queue.size,
-                    quizOptions = emptyList()
+                    quizOptions = if (state.quizMode == QuizMode.CONJUGATION_SELECTION) {
+                        next?.let {
+                            buildConjugationOptions(it, state.multipleChoiceAnswerCount)
+                        }.orEmpty()
+                    } else {
+                        emptyList()
+                    }
                 )
         }
     }
@@ -358,7 +370,7 @@ class HomeViewModel @Inject constructor(
                 quizKanjiQuestions = quizQueue.drop(1),
                 quizQuestionsRemaining = quizQueue.size,
                 quizOptions = nextQuestion?.let {
-                    buildKanjiQuizOptions(it, distractorPool)
+                    buildKanjiQuizOptions(it, distractorPool, state.multipleChoiceAnswerCount)
                 }.orEmpty()
             )
         }
@@ -438,7 +450,8 @@ class HomeViewModel @Inject constructor(
 
     private fun buildKanjiQuizOptions(
         question: KanjiQuizQuestion,
-        distractorPool: List<VocabularyEntry>
+        distractorPool: List<VocabularyEntry>,
+        answerCount: Int
     ): List<String> {
         val distractors = applyKanjiDistractorFilter(
             _question = question,
@@ -449,7 +462,7 @@ class HomeViewModel @Inject constructor(
             .filter { it.isNotBlank() && it != question.answer }
             .distinct()
             .shuffled()
-            .take(3)
+            .take((answerCount - 1).coerceAtLeast(0))
             .toList()
 
         return (listOf(question.answer) + distractors).shuffled()
@@ -515,6 +528,12 @@ class HomeViewModel @Inject constructor(
         require(value in QUIZ_QUESTION_COUNTS)
         preferences.edit().putInt(SETTING_QUIZ_COUNT, value).apply()
         _uiState.update { it.copy(quizQuestionCount = value) }
+    }
+
+    fun onMultipleChoiceAnswerCountChanged(value: Int) {
+        require(value in MULTIPLE_CHOICE_ANSWER_COUNTS)
+        preferences.edit().putInt(SETTING_MULTIPLE_CHOICE_ANSWER_COUNT, value).apply()
+        _uiState.update { it.copy(multipleChoiceAnswerCount = value) }
     }
 
     fun onDeckOpened(deckId: String) {
@@ -691,12 +710,19 @@ class HomeViewModel @Inject constructor(
         if (value.isBlank()) return
 
         dictionarySearchJob = viewModelScope.launch {
-            ensureDictionaryImport().join()
-            val results = dictionaryVocabularyRepository.search(value)
-            if (_uiState.value.dictionaryQuery == value) {
-                _uiState.update { it.copy(dictionaryResults = results) }
+            try {
+                ensureDictionaryImport().join()
+                val results = dictionaryVocabularyRepository.search(value)
+                if (_uiState.value.dictionaryQuery == value) {
+                    _uiState.update { it.copy(dictionaryResults = results, feedback = null) }
+                }
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                _uiState.update {
+                    it.copy(feedback = "No se pudo buscar vocabulario: ${error.message}")
+                }
             }
-
         }
     }
 
@@ -730,10 +756,18 @@ class HomeViewModel @Inject constructor(
         if (value.isBlank()) return
 
         kanjiSearchJob = viewModelScope.launch {
-            ensureDictionaryImport().join()
-            val results = dictionaryKanjiRepository.search(value)
-            if (_uiState.value.kanjiQuery == value) {
-                _uiState.update { it.copy(kanjiResults = results) }
+            try {
+                ensureDictionaryImport().join()
+                val results = dictionaryKanjiRepository.search(value)
+                if (_uiState.value.kanjiQuery == value) {
+                    _uiState.update { it.copy(kanjiResults = results, feedback = null) }
+                }
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                _uiState.update {
+                    it.copy(feedback = "No se pudo buscar kanji: ${error.message}")
+                }
             }
         }
     }
@@ -932,7 +966,12 @@ class HomeViewModel @Inject constructor(
             return
         }
 
-        val expectedAnswer = if (state.quizMode == QuizMode.FIND_KANJI_SELECTION) {
+        val expectedAnswer = if (
+            state.quizMode == QuizMode.CONJUGATION_SELECTION ||
+            state.quizMode == QuizMode.CONJUGATION_WRITTEN
+        ) {
+            state.quizConjugationQuestion?.conjugatedText.orEmpty()
+        } else if (state.quizMode == QuizMode.FIND_KANJI_SELECTION) {
             state.quizKanjiQuestion?.answer.orEmpty()
         } else {
             state.quizMode.expectedAnswer(currentEntry)
@@ -949,7 +988,16 @@ class HomeViewModel @Inject constructor(
             } else {
                 currentEntry
             }
-            reviewVocabularyUseCase(reviewEntry, isCorrect)
+            if (state.quizMode == QuizMode.CONJUGATION_STUDY ||
+                state.quizMode == QuizMode.CONJUGATION_SELECTION ||
+                state.quizMode == QuizMode.CONJUGATION_WRITTEN
+            ) {
+                state.quizConjugationQuestion?.let {
+                    conjugationRepository.recordReview(it.conjugationFormId, isCorrect)
+                }
+            } else {
+                reviewVocabularyUseCase(reviewEntry, isCorrect)
+            }
             refreshState()
 
             if (state.quizMode == QuizMode.FIND_KANJI_SELECTION) {
@@ -972,14 +1020,17 @@ class HomeViewModel @Inject constructor(
                         quizIncorrectAnswers = state.quizIncorrectAnswers + if (isCorrect) 0 else 1,
                         quizQuestionsRemaining = if (nextQuestion == null) 0 else nextQuestions.size + 1,
                         quizOptions = nextQuestion?.let {
-                            buildKanjiQuizOptions(it, distractorPool)
+                            buildKanjiQuizOptions(it, distractorPool, state.multipleChoiceAnswerCount)
                         }.orEmpty()
                     )
                 }
                 return@launch
             }
 
-            if (state.quizMode == QuizMode.CONJUGATION_STUDY) {
+            if (state.quizMode == QuizMode.CONJUGATION_STUDY ||
+                state.quizMode == QuizMode.CONJUGATION_SELECTION ||
+                state.quizMode == QuizMode.CONJUGATION_WRITTEN
+            ) {
                 val nextQuestion = state.quizConjugationQuestions.firstOrNull()
                 _uiState.update {
                     it.copy(
@@ -987,7 +1038,14 @@ class HomeViewModel @Inject constructor(
                         quizConjugationQuestion = nextQuestion,
                         quizConjugationQuestions = state.quizConjugationQuestions.drop(1),
                         quizQuestionsRemaining = if (nextQuestion == null) 0 else state.quizConjugationQuestions.size,
-                        quizCompleted = nextQuestion == null
+                        quizCompleted = nextQuestion == null,
+                        quizOptions = if (state.quizMode == QuizMode.CONJUGATION_SELECTION) {
+                            nextQuestion?.let {
+                                buildConjugationOptions(it, state.multipleChoiceAnswerCount)
+                            }.orEmpty()
+                        } else {
+                            emptyList()
+                        }
                     )
                 }
                 return@launch
@@ -1003,7 +1061,8 @@ class HomeViewModel @Inject constructor(
                     queue = nextQueue,
                     allEntries = state.selectedQuizDeckId?.let {
                         vocabularyRepository.getByDeck(it)
-                    }.orEmpty().filter { it.kind == state.quizMode.kindFilter() }
+                    }.orEmpty().filter { it.kind == state.quizMode.kindFilter() },
+                    answerCount = state.multipleChoiceAnswerCount
                 )
             } ?: emptyList()
 
@@ -1027,7 +1086,8 @@ class HomeViewModel @Inject constructor(
         mode: QuizMode,
         currentEntry: VocabularyEntry,
         queue: List<VocabularyEntry>,
-        allEntries: List<VocabularyEntry>
+        allEntries: List<VocabularyEntry>,
+        answerCount: Int
     ): List<String> {
         if (!mode.usesSelectionOptions()) return emptyList()
 
@@ -1049,16 +1109,28 @@ class HomeViewModel @Inject constructor(
             .distinctBy {
                 it.second.normalizeQuizText()
             }
+
             .filter { (entry, candidate) ->
                 candidate.normalizeQuizText() != normalizedCorrect &&
                     mode.answerConflictKey(entry) != currentConflictKey
             }
             .map { (_, answer) -> answer }
             .shuffled()
-            .take(3)
+            .take((answerCount - 1).coerceAtLeast(0))
             .toList()
 
         return (listOf(correctAnswer) + distractors).shuffled()
+    }
+
+    private fun buildConjugationOptions(
+        question: ConjugationQuizQuestion,
+        answerCount: Int
+    ): List<String> {
+        val distractors = question.availableAnswers
+            .filter { it != question.conjugatedText }
+            .shuffled()
+            .take((answerCount - 1).coerceAtLeast(0))
+        return (listOf(question.conjugatedText) + distractors).shuffled()
     }
 
     private fun QuizMode.kindFilter(): String = when (this) {
@@ -1089,6 +1161,8 @@ class HomeViewModel @Inject constructor(
         QuizMode.STUDY,
         QuizMode.KANJI_STUDY,
         QuizMode.CONJUGATION_STUDY -> entry.meaningEs
+        QuizMode.CONJUGATION_SELECTION,
+        QuizMode.CONJUGATION_WRITTEN -> ""
     }
 
     private fun QuizMode.usesSelectionOptions(): Boolean = when (this) {
@@ -1099,6 +1173,7 @@ class HomeViewModel @Inject constructor(
         QuizMode.KANJI_TO_READINGS_SELECTION,
         QuizMode.READINGS_TO_KANJI_SELECTION -> true
         QuizMode.FIND_KANJI_SELECTION -> true
+        QuizMode.CONJUGATION_SELECTION -> true
 
         else -> false
     }
@@ -1183,6 +1258,13 @@ class HomeViewModel @Inject constructor(
                 showKanjiMeaning = preferences.getBoolean(SETTING_SHOW_KANJI_MEANING, true),
                 quizQuestionCount = preferences.getInt(SETTING_QUIZ_COUNT, 10)
                     .coerceIn(QUIZ_QUESTION_COUNTS.first(), QUIZ_QUESTION_COUNTS.last()),
+                multipleChoiceAnswerCount = preferences.getInt(
+                    SETTING_MULTIPLE_CHOICE_ANSWER_COUNT,
+                    DEFAULT_MULTIPLE_CHOICE_ANSWER_COUNT
+                ).coerceIn(
+                    MULTIPLE_CHOICE_ANSWER_COUNTS.first(),
+                    MULTIPLE_CHOICE_ANSWER_COUNTS.last()
+                ),
                 selectedDeckIds = if (state.selectedDeckIds.isEmpty()) {
                     setOfNotNull(defaultDeck?.id)
                 } else {
@@ -1206,10 +1288,13 @@ class HomeViewModel @Inject constructor(
         const val SETTING_SHOW_KANA = "show_kana"
         const val SETTING_SHOW_KANJI_MEANING = "show_kanji_meaning"
         const val SETTING_QUIZ_COUNT = "quiz_question_count"
+        const val SETTING_MULTIPLE_CHOICE_ANSWER_COUNT = "multiple_choice_answer_count"
+        const val DEFAULT_MULTIPLE_CHOICE_ANSWER_COUNT = 4
         const val KANJI_DISTRACTOR_THRESHOLD = 20
         const val DICTIONARY_FORM = "DICTIONARY"
         const val JMDICT_PROVIDER = "jmdict"
         val QUIZ_QUESTION_COUNTS = (5..100 step 5).toList()
+        val MULTIPLE_CHOICE_ANSWER_COUNTS = listOf(4, 5, 6)
     }
 
     private fun ensureDictionaryImport(): Job {
@@ -1295,6 +1380,7 @@ data class HomeUiState(
     val showKanaInVocabulary: Boolean = true,
     val showKanjiMeaning: Boolean = true,
     val quizQuestionCount: Int = 10,
+    val multipleChoiceAnswerCount: Int = 4,
     val searchQuery: String = "",
     val searchResults: List<VocabularyEntry> = emptyList(),
     val dictionaryQuery: String = "",

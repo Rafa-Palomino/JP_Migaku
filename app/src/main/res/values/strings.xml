@@ -48,6 +48,8 @@
     <string name="selection_navigation_label">Selección</string>
     <string name="quiz_navigation_label">Quiz</string>
     <string name="quiz_study_button">Estudio</string>
+    <string name="quiz_conjugation_selection_button">Conjugar - Selección múltiple</string>
+    <string name="quiz_conjugation_written_button">Conjugar - Escrito</string>
     <string name="quiz_vocabulary_title">Quizes de vocabulario</string>
     <string name="quiz_kanji_title">Quizes de kanji</string>
     <string name="quiz_jp_to_es_selection_button">JP a ES - Selección</string>
@@ -70,6 +72,7 @@
     <string name="settings_show_kana">Mostrar furigana en vocabulario</string>
     <string name="settings_show_kanji_meaning">Mostrar significado de Kanji</string>
     <string name="settings_quiz_questions">Número de preguntas</string>
+    <string name="settings_multiple_choice_answers">Nº de respuestas selección múltiple</string>
     <string name="quiz_empty_message">No hay entradas listas para practicar todavía.</string>
     <string name="search_title">Buscar vocabulario</string>
     <string name="search_hint">Busca por japonés o significado</string>

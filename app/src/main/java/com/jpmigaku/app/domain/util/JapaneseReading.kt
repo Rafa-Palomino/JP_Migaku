@@ -68,3 +68,11 @@ fun String.toRomaji(): String {
     }
     return result.toString()
 }
+
+fun String.toKatakana(): String = map { character ->
+    if (character in '\u3041'..'\u3096') {
+        (character.code + 0x60).toChar()
+    } else {
+        character
+    }
+}.joinToString("")

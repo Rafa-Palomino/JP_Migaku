@@ -13,5 +13,7 @@ data class ConjugationQuizQuestion(
     val vocabularyEntry: VocabularyEntry,
     val conjugatedText: String,
     val formDisplayName: String,
-    val classificationTag: String
+    val classificationTag: String,
+    val conjugationFormId: String,
+    val availableAnswers: List<String>
 )

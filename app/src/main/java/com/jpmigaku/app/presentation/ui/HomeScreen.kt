@@ -16,12 +16,15 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.activity.compose.BackHandler
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -45,6 +48,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -321,12 +325,42 @@ private fun ArrowButton(symbol: String, onClick: () -> Unit) {
 }
 
 @Composable
+private fun SearchInputField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String
+) {
+    BasicTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 50.dp)
+            .border(2.dp, Color.Red, RoundedCornerShape(6.dp))
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        textStyle = MaterialTheme.typography.bodyLarge.copy(color = Color.Black),
+        cursorBrush = SolidColor(Color.Red),
+        singleLine = true,
+        decorationBox = { innerTextField ->
+            if (value.isBlank()) {
+                Text(
+                    text = placeholder,
+                    color = Color.DarkGray,
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            }
+            innerTextField()
+        }
+    )
+}
+
+@Composable
 private fun AddKanjiContent(
     uiState: com.jpmigaku.app.presentation.viewmodel.HomeUiState,
     viewModel: HomeViewModel
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
-        Column(modifier = Modifier.weight(0.22f)) {
+        Column {
             Text(text = stringResource(R.string.add_kanji_title), style = MaterialTheme.typography.headlineSmall)
             Spacer(modifier = Modifier.height(8.dp))
             JlptLevelSelector(
@@ -339,16 +373,10 @@ private fun AddKanjiContent(
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
             )
             Spacer(modifier = Modifier.height(6.dp))
-            OutlinedTextField(
+            SearchInputField(
                 value = uiState.kanjiQuery,
                 onValueChange = viewModel::onKanjiQueryChanged,
-                label = { Text(stringResource(R.string.kanji_search_hint)) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 70.dp)
-                    .offset(y = (-3).dp),
-                textStyle = MaterialTheme.typography.bodyLarge.copy(color = Color.Black),
-                singleLine = true
+                placeholder = stringResource(R.string.kanji_search_hint)
             )
         }
 
@@ -445,7 +473,7 @@ private fun AddVocabularyContent(uiState: com.jpmigaku.app.presentation.viewmode
     val context = LocalContext.current
     val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
     Column(modifier = Modifier.fillMaxSize()) {
-        Column(modifier = Modifier.weight(0.22f)) {
+        Column {
             Text(text = stringResource(R.string.add_vocab_title), style = MaterialTheme.typography.headlineSmall)
             Spacer(modifier = Modifier.height(8.dp))
             JlptLevelSelector(
@@ -458,16 +486,10 @@ private fun AddVocabularyContent(uiState: com.jpmigaku.app.presentation.viewmode
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
             )
             Spacer(modifier = Modifier.height(6.dp))
-            OutlinedTextField(
+            SearchInputField(
                 value = uiState.dictionaryQuery,
                 onValueChange = viewModel::onDictionaryQueryChanged,
-                label = { Text(stringResource(R.string.dictionary_search_hint)) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 70.dp)
-                    .offset(y = (-3).dp),
-                textStyle = MaterialTheme.typography.bodyLarge.copy(color = Color.Black),
-                singleLine = true
+                placeholder = stringResource(R.string.dictionary_search_hint)
             )
             Spacer(modifier = Modifier.height(6.dp))
             RedButton(onClick = {
@@ -915,6 +937,30 @@ private fun SettingsContent(
             }
         }
     }
+    Spacer(modifier = Modifier.height(12.dp))
+    var multipleChoiceExpanded by remember { mutableStateOf(false) }
+    Box {
+        RedButton(onClick = { multipleChoiceExpanded = true }) {
+            Text(
+                "${stringResource(R.string.settings_multiple_choice_answers)}: " +
+                    uiState.multipleChoiceAnswerCount
+            )
+        }
+        DropdownMenu(
+            expanded = multipleChoiceExpanded,
+            onDismissRequest = { multipleChoiceExpanded = false }
+        ) {
+            listOf(4, 5, 6).forEach { answerCount ->
+                DropdownMenuItem(
+                    text = { Text(answerCount.toString()) },
+                    onClick = {
+                        viewModel.onMultipleChoiceAnswerCountChanged(answerCount)
+                        multipleChoiceExpanded = false
+                    }
+                )
+            }
+        }
+    }
     Spacer(modifier = Modifier.height(16.dp))
     uiState.feedback?.let { Text(it) }
     RedButton(onClick = viewModel::onBackClicked) {
@@ -1007,6 +1053,16 @@ private fun QuizModeContent(uiState: com.jpmigaku.app.presentation.viewmodel.Hom
                     QuizDeckSelector(uiState, viewModel)
                     Spacer(modifier = Modifier.height(12.dp))
                     QuizModeButton(viewModel, QuizMode.CONJUGATION_STUDY, "Estudio")
+                    QuizModeButton(
+                        viewModel,
+                        QuizMode.CONJUGATION_SELECTION,
+                        stringResource(R.string.quiz_conjugation_selection_button)
+                    )
+                    QuizModeButton(
+                        viewModel,
+                        QuizMode.CONJUGATION_WRITTEN,
+                        stringResource(R.string.quiz_conjugation_written_button)
+                    )
                 }
             }
         } else {
@@ -1341,11 +1397,37 @@ private fun buildQuizCardText(
                 append("Estudia conjugación:")
                 uiState.quizConjugationQuestion?.let(::appendConjugationQuizQuestion)
             }
+
+            QuizMode.CONJUGATION_SELECTION,
+            QuizMode.CONJUGATION_WRITTEN -> {
+                append("Conjuga:")
+                uiState.quizConjugationQuestion?.let(::appendConjugationQuizPrompt)
+            }
         }
     }
 }
 
 private fun AnnotatedString.Builder.appendConjugationQuizQuestion(
+    question: com.jpmigaku.app.domain.model.ConjugationQuizQuestion
+) {
+    withStyle(SpanStyle(fontSize = 28.sp, fontWeight = FontWeight.Bold)) {
+        append("\n")
+        append(question.vocabularyEntry.japanese)
+    }
+
+    withStyle(SpanStyle(fontSize = 22.sp)) {
+        append("\n")
+        append(question.vocabularyEntry.reading)
+        append("\n")
+        append(question.vocabularyEntry.meaningEs)
+        append("\n")
+        append("${question.formDisplayName}: ${question.conjugatedText}")
+        append("\n")
+        append("JMdict: ${question.classificationTag}")
+    }
+}
+
+private fun AnnotatedString.Builder.appendConjugationQuizPrompt(
     question: com.jpmigaku.app.domain.model.ConjugationQuizQuestion
 ) {
     withStyle(SpanStyle(fontSize = 28.sp, fontWeight = FontWeight.Bold)) {
@@ -1358,7 +1440,7 @@ private fun AnnotatedString.Builder.appendConjugationQuizQuestion(
         append("\n")
         append(question.vocabularyEntry.meaningEs)
         append("\n")
-        append("${question.formDisplayName}: ${question.conjugatedText}")
+        append("Forma: ${question.formDisplayName}")
         append("\n")
         append("JMdict: ${question.classificationTag}")
     }

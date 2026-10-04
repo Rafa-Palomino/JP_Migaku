@@ -1,6 +1,7 @@
 package com.jpmigaku.app.data.repository
 
 import com.jpmigaku.app.data.local.dao.ConjugationDao
+import com.jpmigaku.app.data.local.entity.ConjugationReviewStatsEntity
 import com.jpmigaku.app.domain.model.ConjugationFormOption
 import com.jpmigaku.app.domain.model.ConjugationQuizQuestion
 import com.jpmigaku.app.domain.model.GrammarClassification
@@ -21,6 +22,7 @@ interface ConjugationRepository {
         entry: VocabularyEntry,
         selectedFormKeys: Set<String>
     ): ConjugationQuizQuestion?
+    suspend fun recordReview(conjugationFormId: String, wasCorrect: Boolean)
 }
 
 class RoomConjugationRepository @Inject constructor(
@@ -101,8 +103,61 @@ class RoomConjugationRepository @Inject constructor(
             ),
             forms = rules
         )
+        val conjugatedForms = forms.mapNotNull { form ->
+            val inflection = engine.inflect(
+                dictionaryForm = dictionaryEntry.japanese,
+                classification = GrammarClassification(
+                    pattern.wordClass,
+                    pattern.conjugationType,
+                    classification.sourceTag
+                ),
+                formKey = form.formKey,
+                patterns = listOf(
+                    InflectionPatternRule(
+                        id = pattern.id,
+                        wordClass = pattern.wordClass,
+                        type = pattern.conjugationType,
+                        dictionaryEnding = dictionaryForm.compositionJson,
+                        sourceTag = classification.sourceTag
+                    )
+                ),
+                forms = rules
+            )
+            (inflection as? InflectionResult.Success)?.text
+        }.distinct()
         return (result as? InflectionResult.Success)?.let {
-            ConjugationQuizQuestion(entry, it.text, selectedForm.displayName, classification.sourceTag)
+            ConjugationQuizQuestion(
+                vocabularyEntry = entry,
+                conjugatedText = it.text,
+                formDisplayName = selectedForm.displayName,
+                classificationTag = classification.sourceTag,
+                conjugationFormId = selectedForm.id,
+                availableAnswers = conjugatedForms
+            )
+        }
+    }
+
+    override suspend fun recordReview(conjugationFormId: String, wasCorrect: Boolean) {
+        val current = dao.getReviewStats(conjugationFormId)
+        val now = System.currentTimeMillis()
+        val attempts = (current?.attempts ?: 0) + 1
+        val correctCount = (current?.correctCount ?: 0) + if (wasCorrect) 1 else 0
+        val incorrectCount = (current?.incorrectCount ?: 0) + if (wasCorrect) 0 else 1
+        val streak = if (wasCorrect) (current?.currentStreak ?: 0) + 1 else 0
+        val stats = (current ?: ConjugationReviewStatsEntity(conjugationFormId)).copy(
+            attempts = attempts,
+            correctCount = correctCount,
+            incorrectCount = incorrectCount,
+            currentStreak = streak,
+            bestStreak = maxOf(current?.bestStreak ?: 0, streak),
+            lastCorrectAt = if (wasCorrect) now else current?.lastCorrectAt,
+            lastIncorrectAt = if (!wasCorrect) now else current?.lastIncorrectAt,
+            lastReviewedAt = now
+        )
+        if (current == null) {
+            dao.insertReviewStats(stats)
+        } else {
+            dao.updateReviewStats(stats)
         }
     }
 

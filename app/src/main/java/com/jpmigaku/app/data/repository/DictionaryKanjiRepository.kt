@@ -3,6 +3,7 @@ package com.jpmigaku.app.data.repository
 import com.jpmigaku.app.data.local.dao.DictionaryKanjiDao
 import com.jpmigaku.app.data.local.entity.DictionaryKanjiEntity
 import com.jpmigaku.app.domain.model.DictionaryKanji
+import com.jpmigaku.app.domain.util.toKatakana
 import javax.inject.Inject
 
 interface DictionaryKanjiRepository {
@@ -12,8 +13,16 @@ interface DictionaryKanjiRepository {
 class RoomDictionaryKanjiRepository @Inject constructor(
     private val dao: DictionaryKanjiDao
 ) : DictionaryKanjiRepository {
-    override suspend fun search(query: String): List<DictionaryKanji> =
-        dao.search(query.trim()).map { it.toDomain() }
+    override suspend fun search(query: String): List<DictionaryKanji> {
+        val normalizedQuery = query.trim()
+        if (normalizedQuery.isBlank()) return emptyList()
+
+        val queries = listOf(normalizedQuery, normalizedQuery.toKatakana()).distinct()
+        return queries
+            .flatMap { searchQuery -> dao.search(searchQuery) }
+            .distinctBy { it.character }
+            .map { it.toDomain() }
+    }
 
     private fun DictionaryKanjiEntity.toDomain(): DictionaryKanji {
         val spanish = spanishMeanings.split(LIST_SEPARATOR).firstOrNull(String::isNotBlank)
