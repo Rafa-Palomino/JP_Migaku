@@ -5,7 +5,13 @@ concebida para funcionar sin conexión. Su objetivo es ofrecer una base
 extensible para organizar contenidos de estudio, crear tarjetas personales y
 repasar mediante un modo de estudio local.
 
-El proyecto se encuentra actualmente en fase experimental (`0.1.0`). La
+El proyecto nace como una app personal de apoyo al aprendizaje y el repaso, y
+busca: 
+- Centralizar temas de aprendizaje en una sola app.
+- Evitar que los conceptos se olviden por falta de uso.
+- Poder organizar el conocimiento en decks para facilitar el estudio.
+
+El proyecto se encuentra actualmente en fase experimental (`0.2.0`). La
 implementación del repositorio es la fuente de verdad; las APIs, pantallas y
 algoritmos pueden cambiar durante el desarrollo.
 
