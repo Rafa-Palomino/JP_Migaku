@@ -5,7 +5,7 @@ concebida para funcionar sin conexión. Su objetivo es ofrecer una base
 extensible para organizar contenidos de estudio, crear tarjetas personales y
 repasar mediante un modo de estudio local.
 
-El proyecto nace como una app personal de apoyo al aprendizaje y el repaso, y
+El proyecto nace como una app personal de apoyo al aprendizaje de Japonés, y
 busca: 
 - Centralizar temas de aprendizaje en una sola app.
 - Evitar que los conceptos se olviden por falta de uso.
